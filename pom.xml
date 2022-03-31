@@ -33,7 +33,7 @@
         <camel.version>3.11.0</camel.version> <!-- latest 3.11.0 -->
         <spring.version>5.3.8</spring.version> <!-- latest 5.3.8 -->
         <spring-security.version>5.5.1</spring-security.version> <!-- latest 5.5.1 -->
-        <spring-boot.version>2.5.2</spring-boot.version> <!-- latest 2.5.2 --> <!-- 2.3.x is not fully supported by camel (will be on camel 3.4) -->
+        <spring-boot.version>2.5.12</spring-boot.version> <!-- latest 2.5.2 --> <!-- 2.3.x is not fully supported by camel (will be on camel 3.4) -->
 
         <aopalliance.version>1.0</aopalliance.version>
         <artemis.version>2.2.0</artemis.version>
