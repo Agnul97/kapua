@@ -23,6 +23,7 @@ import java.lang.reflect.Modifier;
 @Category(JUnitTests.class)
 public class BrokerDomainsTest extends Assert {
 
+    //inutile
     @Test
     public void brokerDomainsTest() throws Exception {
         Constructor<BrokerDomains> brokerDomains = BrokerDomains.class.getDeclaredConstructor();
