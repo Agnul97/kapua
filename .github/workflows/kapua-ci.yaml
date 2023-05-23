@@ -25,7 +25,13 @@ jobs:
             ${{ runner.os }}-maven-
       - run: mvn -v
       - run: docker images -a  # used as log (should show only github environment standard docker images; if kapua images are present, something is wrong)
-      - run: mvn -B ${BUILD_OPTS} -DskipTests clean install
+      - uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
+        continue-on-error: true
+        with:
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          restore-keys: |
+            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+      - run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
       - run: bash <(curl -s https://codecov.io/bash)
   test-brokerAcl:
     needs: build
@@ -43,9 +49,17 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
+      - uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
+        continue-on-error: true
+        with:
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          restore-keys: |
+            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+          skip-save: true
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
-      - run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
+      - run: docker images -a
+      #- run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -94,7 +108,13 @@ jobs:
             ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
-      - run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
+      - uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
+        continue-on-error: true
+        with:
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          restore-keys: |
+            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+          skip-save: true
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -120,7 +140,13 @@ jobs:
             ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
-      - run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
+      - uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
+        continue-on-error: true
+        with:
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          restore-keys: |
+            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+          skip-save: true
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -146,7 +172,13 @@ jobs:
             ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
-      - run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
+      - uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
+        continue-on-error: true
+        with:
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          restore-keys: |
+            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+          skip-save: true
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -172,7 +204,13 @@ jobs:
             ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
-      - run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
+      - uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
+        continue-on-error: true
+        with:
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          restore-keys: |
+            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+          skip-save: true
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -198,7 +236,13 @@ jobs:
             ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
-      - run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
+      - uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
+        continue-on-error: true
+        with:
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          restore-keys: |
+            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+          skip-save: true
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -247,7 +291,13 @@ jobs:
             ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
-      - run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
+      - uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
+        continue-on-error: true
+        with:
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          restore-keys: |
+            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+          skip-save: true
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -273,7 +323,13 @@ jobs:
             ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
-      - run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
+      - uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
+        continue-on-error: true
+        with:
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          restore-keys: |
+            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+          skip-save: true
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -345,7 +401,13 @@ jobs:
             ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
-      - run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
+      - uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
+        continue-on-error: true
+        with:
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          restore-keys: |
+            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+          skip-save: true
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -371,7 +433,13 @@ jobs:
             ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
-      - run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
+      - uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
+        continue-on-error: true
+        with:
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          restore-keys: |
+            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+          skip-save: true
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -397,7 +465,13 @@ jobs:
             ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
-      - run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
+      - uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
+        continue-on-error: true
+        with:
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          restore-keys: |
+            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+          skip-save: true
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -423,7 +497,13 @@ jobs:
             ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
-      - run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
+      - uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
+        continue-on-error: true
+        with:
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          restore-keys: |
+            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+          skip-save: true
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -449,7 +529,13 @@ jobs:
             ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
-      - run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
+      - uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
+        continue-on-error: true
+        with:
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          restore-keys: |
+            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+          skip-save: true
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -498,7 +584,13 @@ jobs:
             ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
-      - run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
+      - uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
+        continue-on-error: true
+        with:
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          restore-keys: |
+            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+          skip-save: true
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -524,7 +616,13 @@ jobs:
             ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
-      - run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
+      - uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
+        continue-on-error: true
+        with:
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          restore-keys: |
+            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+          skip-save: true
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -550,7 +648,13 @@ jobs:
             ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
-      - run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
+      - uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
+        continue-on-error: true
+        with:
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          restore-keys: |
+            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+          skip-save: true
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -576,7 +680,13 @@ jobs:
             ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
-      - run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
+      - uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
+        continue-on-error: true
+        with:
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          restore-keys: |
+            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+          skip-save: true
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -602,7 +712,13 @@ jobs:
             ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
-      - run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
+      - uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
+        continue-on-error: true
+        with:
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          restore-keys: |
+            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+          skip-save: true
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -628,7 +744,13 @@ jobs:
             ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
-      - run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
+      - uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
+        continue-on-error: true
+        with:
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          restore-keys: |
+            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+          skip-save: true
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -654,7 +776,13 @@ jobs:
             ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
-      - run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
+      - uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
+        continue-on-error: true
+        with:
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          restore-keys: |
+            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+          skip-save: true
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -702,7 +830,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
-      - run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
+      - uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
+        continue-on-error: true
+        with:
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          restore-keys: |
+            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+          skip-save: true
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -727,7 +861,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
-      - run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
+      - uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
+        continue-on-error: true
+        with:
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          restore-keys: |
+            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+          skip-save: true
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -776,3 +916,4 @@ jobs:
             ${{ runner.os }}-maven-
       - run: mvn -B -DskipTests install javadoc:jar
       - run: bash <(curl -s https://codecov.io/bash)
+
