@@ -5,6 +5,7 @@ env:
   BUILD_OPTS: ""
   CONFIG_OVERRIDES: "-Dcommons.db.schema=kapuadb -Dcommons.settings.hotswap=true -Dbroker.host=localhost -Dcrypto.secret.key=kapuaTestsKey!!!"
   MAVEN_OPTS: "-Xmx4096m"
+  TEST_PROJECTS: "org.eclipse.kapua:kapua-security-test,org.eclipse.kapua:kapua-qa-integration,org.eclipse.kapua:kapua-scheduler-test,org.eclipse.kapua:kapua-user-test,org.eclipse.kapua:kapua-system-test,org.eclipse.kapua:kapua-job-test,org.eclipse.kapua:kapua-device-registry-test,org.eclipse.kapua:kapua-account-test,org.eclipse.kapua:kapua-tag-test,org.eclipse.kapua:kapua-translator-test"
 
 jobs:
   build:
@@ -58,6 +59,8 @@ jobs:
 #          skip-save: true
 #      - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
 #      - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
+#      - run: docker images -a
+#      #- run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
 #      - uses: nick-fields/retry@v2.8.1
 #        with:
 #          timeout_minutes: 45
@@ -214,7 +217,7 @@ jobs:
           timeout_minutes: 45
           retry_on: error
           max_attempts: 1
-          command: ./ci-output.sh mvn -B ${BUILD_OPTS} ${CONFIG_OVERRIDES} -Dgroups='!org.eclipse.kapua.qa.markers.junit.JUnitTests' -Dcucumber.filter.tags="@connection" surefire:test
+          command: ./ci-output.sh mvn -B ${BUILD_OPTS} ${CONFIG_OVERRIDES} -Dgroups='!org.eclipse.kapua.qa.markers.junit.JUnitTests' -Dcucumber.filter.tags="@connection" -pl ${TEST_PROJECTS} verify
       - run: bash <(curl -s https://codecov.io/bash)
 #  test-datastore:
 #    needs: build
