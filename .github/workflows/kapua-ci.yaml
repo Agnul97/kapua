@@ -32,8 +32,7 @@ jobs:
           key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
           restore-keys: |
             ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
-      #- run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
-      - run: mvn -B ${BUILD_OPTS} -DskipTests clean install
+      - run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
       - run: bash <(curl -s https://codecov.io/bash)
   test-brokerAcl:
     needs: build
@@ -51,19 +50,20 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
-      - name: Docker images caching
-        id: dock
-        run: exit 1
-#        uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
-#        continue-on-error: true
-#        with:
-#          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
-#          restore-keys: |
-#            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
-#          skip-save: true
-      - name: Build docker images if needed
-        if: ${{ failure() && steps.dock.outcome == 'failure' }} #the first condition is needed for the way gitactions are structured, read https://docs.github.com/en/actions/learn-github-actions/expressions#status-check-functions
-        run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
+      - uses: Wandalen/wretry.action@v1.0.36
+        with:
+          action: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
+          #continue-on-error: true
+          with: |
+            key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}
+#            restore-keys: |
+#              ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+#            skip-save: false
+          attempt_limit: 3
+          attempt_delay: 2000
+#      - name: Build docker images if needed
+#        if: ${{ failure() && steps.dock.outcome == 'failure' }} #the first condition is needed for the way gitactions are structured, read https://docs.github.com/en/actions/learn-github-actions/expressions#status-check-functions
+#        run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
       - run: docker images -a # used as log (to verify that kapua images are actually retrieved from cache and listed here)
