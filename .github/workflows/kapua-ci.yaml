@@ -60,7 +60,7 @@ jobs:
             ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
           skip-save: true
       - name: Build docker images if needed
-        if: steps.dock.outcome == 'failure'
+        if: ${{ failure() && steps.dock.outcome == 'failure' }} #the first condition is needed for the way gitactions are structured, read https://docs.github.com/en/actions/learn-github-actions/expressions#status-check-functions
         run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
@@ -123,7 +123,7 @@ jobs:
             ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
           skip-save: true
       - name: Build docker images if needed
-        if: steps.dock.outcome == 'failure'
+        if: ${{ failure() && steps.dock.outcome == 'failure' }}
         run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
       - uses: nick-fields/retry@v2.8.1
         with:
@@ -160,7 +160,7 @@ jobs:
             ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
           skip-save: true
       - name: Build docker images if needed
-        if: steps.dock.outcome == 'failure'
+        if: ${{ failure() && steps.dock.outcome == 'failure' }}
         run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
       - uses: nick-fields/retry@v2.8.1
         with:
@@ -197,7 +197,7 @@ jobs:
             ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
           skip-save: true
       - name: Build docker images if needed
-        if: steps.dock.outcome == 'failure'
+        if: ${{ failure() && steps.dock.outcome == 'failure' }}
         run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
       - uses: nick-fields/retry@v2.8.1
         with:
@@ -234,7 +234,7 @@ jobs:
             ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
           skip-save: true
       - name: Build docker images if needed
-        if: steps.dock.outcome == 'failure'
+        if: ${{ failure() && steps.dock.outcome == 'failure' }}
         run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
       - uses: nick-fields/retry@v2.8.1
         with:
@@ -271,7 +271,7 @@ jobs:
             ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
           skip-save: true
       - name: Build docker images if needed
-        if: steps.dock.outcome == 'failure'
+        if: ${{ failure() && steps.dock.outcome == 'failure' }}
         run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
       - uses: nick-fields/retry@v2.8.1
         with:
@@ -331,7 +331,7 @@ jobs:
             ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
           skip-save: true
       - name: Build docker images if needed
-        if: steps.dock.outcome == 'failure'
+        if: ${{ failure() && steps.dock.outcome == 'failure' }}
         run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
       - uses: nick-fields/retry@v2.8.1
         with:
@@ -368,7 +368,7 @@ jobs:
             ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
           skip-save: true
       - name: Build docker images if needed
-        if: steps.dock.outcome == 'failure'
+        if: ${{ failure() && steps.dock.outcome == 'failure' }}
         run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
       - uses: nick-fields/retry@v2.8.1
         with:
@@ -451,7 +451,7 @@ jobs:
             ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
           skip-save: true
       - name: Build docker images if needed
-        if: steps.dock.outcome == 'failure'
+        if: ${{ failure() && steps.dock.outcome == 'failure' }}
         run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
       - uses: nick-fields/retry@v2.8.1
         with:
@@ -488,7 +488,7 @@ jobs:
             ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
           skip-save: true
       - name: Build docker images if needed
-        if: steps.dock.outcome == 'failure'
+        if: ${{ failure() && steps.dock.outcome == 'failure' }}
         run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
       - uses: nick-fields/retry@v2.8.1
         with:
@@ -525,7 +525,7 @@ jobs:
             ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
           skip-save: true
       - name: Build docker images if needed
-        if: steps.dock.outcome == 'failure'
+        if: ${{ failure() && steps.dock.outcome == 'failure' }}
         run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
       - uses: nick-fields/retry@v2.8.1
         with:
@@ -562,7 +562,7 @@ jobs:
             ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
           skip-save: true
       - name: Build docker images if needed
-        if: steps.dock.outcome == 'failure'
+        if: ${{ failure() && steps.dock.outcome == 'failure' }}
         run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
       - uses: nick-fields/retry@v2.8.1
         with:
@@ -599,7 +599,7 @@ jobs:
             ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
           skip-save: true
       - name: Build docker images if needed
-        if: steps.dock.outcome == 'failure'
+        if: ${{ failure() && steps.dock.outcome == 'failure' }}
         run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
       - uses: nick-fields/retry@v2.8.1
         with:
@@ -659,7 +659,7 @@ jobs:
             ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
           skip-save: true
       - name: Build docker images if needed
-        if: steps.dock.outcome == 'failure'
+        if: ${{ failure() && steps.dock.outcome == 'failure' }}
         run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
       - uses: nick-fields/retry@v2.8.1
         with:
@@ -696,7 +696,7 @@ jobs:
             ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
           skip-save: true
       - name: Build docker images if needed
-        if: steps.dock.outcome == 'failure'
+        if: ${{ failure() && steps.dock.outcome == 'failure' }}
         run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
       - uses: nick-fields/retry@v2.8.1
         with:
@@ -733,7 +733,7 @@ jobs:
             ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
           skip-save: true
       - name: Build docker images if needed
-        if: steps.dock.outcome == 'failure'
+        if: ${{ failure() && steps.dock.outcome == 'failure' }}
         run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
       - uses: nick-fields/retry@v2.8.1
         with:
@@ -770,7 +770,7 @@ jobs:
             ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
           skip-save: true
       - name: Build docker images if needed
-        if: steps.dock.outcome == 'failure'
+        if: ${{ failure() && steps.dock.outcome == 'failure' }}
         run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
       - uses: nick-fields/retry@v2.8.1
         with:
@@ -807,7 +807,7 @@ jobs:
             ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
           skip-save: true
       - name: Build docker images if needed
-        if: steps.dock.outcome == 'failure'
+        if: ${{ failure() && steps.dock.outcome == 'failure' }}
         run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
       - uses: nick-fields/retry@v2.8.1
         with:
@@ -844,7 +844,7 @@ jobs:
             ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
           skip-save: true
       - name: Build docker images if needed
-        if: steps.dock.outcome == 'failure'
+        if: ${{ failure() && steps.dock.outcome == 'failure' }}
         run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
       - uses: nick-fields/retry@v2.8.1
         with:
@@ -881,7 +881,7 @@ jobs:
             ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
           skip-save: true
       - name: Build docker images if needed
-        if: steps.dock.outcome == 'failure'
+        if: ${{ failure() && steps.dock.outcome == 'failure' }}
         run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
       - uses: nick-fields/retry@v2.8.1
         with:
@@ -940,7 +940,7 @@ jobs:
             ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
           skip-save: true
       - name: Build docker images if needed
-        if: steps.dock.outcome == 'failure'
+        if: ${{ failure() && steps.dock.outcome == 'failure' }}
         run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
       - uses: nick-fields/retry@v2.8.1
         with:
@@ -976,7 +976,7 @@ jobs:
             ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
           skip-save: true
       - name: Build docker images if needed
-        if: steps.dock.outcome == 'failure'
+        if: ${{ failure() && steps.dock.outcome == 'failure' }}
         run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
       - uses: nick-fields/retry@v2.8.1
         with:
