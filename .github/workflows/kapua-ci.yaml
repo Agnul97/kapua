@@ -835,7 +835,7 @@ jobs:
         uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
         continue-on-error: true
         with:
-          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          key: ${{ github.run_id }}-${{ github.run_number }}-dockr-cache-{hash}  # cache is valid only for current run on the current repository
           restore-keys: |
             ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
           skip-save: true
