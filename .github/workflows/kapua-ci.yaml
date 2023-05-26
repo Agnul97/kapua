@@ -28,10 +28,10 @@ jobs:
       - run: docker images -a  # used as log (should show only GitHub environment standard docker images; if kapua images are present, something is wrong)
       - uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
         continue-on-error: true
-#        with:
-#          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
-#          restore-keys: |
-#            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+        with:
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          restore-keys: |
+           ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
       #- run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
       #- run: bash <(curl -s https://codecov.io/bash)
       - run: docker pull nginx
@@ -40,33 +40,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-java@v3
+#      - uses: actions/setup-java@v3
+#        with:
+#          distribution: 'zulu'
+#          java-version: 11
+#          cache: 'maven'
+#      - uses: actions/cache@v3
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
+      - uses: ./.github/actions/cacheDockerRetry
         with:
-          distribution: 'zulu'
-          java-version: 11
-          cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
           restore-keys: |
-            ${{ runner.os }}-maven-
-      - uses: Wandalen/wretry.action@v1.0.36
-        with:
-          action: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
-          #continue-on-error: true
-#          with: |
-#            restore-keys: |
-#              ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
-#            key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}
-#            restore-keys: |
-#              ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
-#            skip-save: false
-          attempt_limit: 3
-          attempt_delay: 2000
-#      - name: Build docker images if needed
-#        if: ${{ failure() && steps.dock.outcome == 'failure' }} #the first condition is needed for the way gitactions are structured, read https://docs.github.com/en/actions/learn-github-actions/expressions#status-check-functions
-#        run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
+           ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+          skip-save: true
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
       - run: docker images -a # used as log (to verify that kapua images are actually retrieved from cache and listed here)
@@ -118,30 +108,33 @@ jobs:
 #            ${{ runner.os }}-maven-
 #      - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
 #      - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
-      - name: Docker images caching
-        id: dock
-        uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
+#      - name: Docker images caching
+#        id: dock
+#        uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
 #        continue-on-error: true
 #        with:
 #          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
 #          restore-keys: |
 #            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
 #          skip-save: true
-      - name: Build docker images if needed
-        if: ${{ failure() && steps.dock.outcome == 'failure' }}
-        run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
-      - uses: nick-fields/retry@v2.8.1
+      - uses: ./.github/actions/cacheDockerRetry
         with:
-          timeout_minutes: 45
-          retry_on: error
-          max_attempts: 1
-          command: ./ci-output.sh mvn -B ${BUILD_OPTS} ${CONFIG_OVERRIDES} -Dgroups='!org.eclipse.kapua.qa.markers.junit.JUnitTests' -Dcucumber.filter.tags="@broker" -pl ${TEST_PROJECTS} verify
-      - run: bash <(curl -s https://codecov.io/bash)
-#  test-device:
-#    needs: build
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v3
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          restore-keys: |
+            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+          skip-save: true
+#      - uses: nick-fields/retry@v2.8.1
+#        with:
+#          timeout_minutes: 45
+#          retry_on: error
+#          max_attempts: 1
+#          command: ./ci-output.sh mvn -B ${BUILD_OPTS} ${CONFIG_OVERRIDES} -Dgroups='!org.eclipse.kapua.qa.markers.junit.JUnitTests' -Dcucumber.filter.tags="@broker" -pl ${TEST_PROJECTS} verify
+#      - run: bash <(curl -s https://codecov.io/bash)
+  test-device:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
 #      - uses: actions/setup-java@v3
 #        with:
 #          distribution: 'zulu'
@@ -164,9 +157,12 @@ jobs:
 #          restore-keys: |
 #            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
 #          skip-save: true
-#      - name: Build docker images if needed
-#        if: ${{ failure() && steps.dock.outcome == 'failure' }}
-#        run: mvn -f assembly/pom.xml -Pdocker -DskipTests clean install
+      - uses: ./.github/actions/cacheDockerRetry
+        with:
+          key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+          restore-keys: |
+            ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+          skip-save: true
 #      - uses: nick-fields/retry@v2.8.1
 #        with:
 #          timeout_minutes: 45
