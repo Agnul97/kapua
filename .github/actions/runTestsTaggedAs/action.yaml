@@ -27,8 +27,12 @@ runs:
           ${{ runner.os }}-maven-
     - name: Docker images creation
       if: ${{ inputs.needs-docker-images == 'true' }}
-      run: mvn -B ${BUILD_OPTS} -Pdocker -DskipTests clean install
-      shell: bash
+      uses: ./.github/actions/cacheDockerRetry
+      with:
+        key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
+        restore-keys: |
+          ${{ github.run_id }}-${{ github.run_number }}-docker-cache-
+        skip-save: true
     - name: Dns look-up containers needed for tests - message-broker
       if: ${{ inputs.needs-docker-images == 'true' }}
       run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
