@@ -14,14 +14,11 @@ inputs:
     required: false
     default: 'false'
 #outputs:
-#  random-number:
-#    description: "Random number"
-#    value: ${{ steps.random-number-generator.outputs.random-number }}
 runs:
   using: "composite"
   steps:
     - name: Docker images caching - try 1
-      id: dock1
+      id: dock1 #TODO: should this ID be changed on a jobBasis? like, using jobId or similar. Doubt born by the check in the next conditional statement "steps.dock1.outcome"...
       continue-on-error: true
       uses: jpribyl/action-docker-layer-caching@v0.1.1
       with:
@@ -29,11 +26,11 @@ runs:
         restore-keys: ${{ inputs.restore-keys }}
         skip-save: ${{ inputs.skip-save }}
     - name: retry-sleep-1
-      if: ${{ always() && steps.dock1.outcome == 'failure' }} # the first condition (always) is needed for how status check functions works in GitHub actions (see https://docs.github.com/en/actions/learn-github-actions/expressions#status-check-functions)
-      run: sleep 30
+      if: ${{ always() && steps.dock1.outcome == 'failure' }} # the first status check function call (always) is needed for how status check functions works in GitHub actions (see https://docs.github.com/en/actions/learn-github-actions/expressions#status-check-functions)
+      run: sleep 30 #TODO could implement a sleep different for each job. For example something like {JOBIDNUMBER * OFFSETseconds}
       shell: bash
     - name: Docker images caching - try 2
-      if: ${{ always() && steps.dock1.outcome == 'failure' }} #NOTE : this failure test could be replaced by a counting of kapua images in the environment. TODO if this check don't work on failure
+      if: ${{ always() && steps.dock1.outcome == 'failure' }} #NOTE : this failure test could be replaced by a counting of kapua images in the environment. TODO if this check don't work on failure of previous cache retrieval
       id: dock2
       continue-on-error: true
       uses: jpribyl/action-docker-layer-caching@v0.1.1
