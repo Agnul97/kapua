@@ -18,12 +18,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - run: mvn -v
       - run: docker images -a  # used as log (should show only GitHub environment standard docker images; if kapua images are present, something is wrong)
       - uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
@@ -44,12 +44,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - uses: ./.github/actions/cacheDockerRetry
         with:
           key: ${{ github.run_id }}-${{ github.run_number }}-docker-cache-{hash}  # cache is valid only for current run on the current repository
@@ -76,12 +76,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -99,12 +99,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
       - uses: ./.github/actions/cacheDockerRetry
@@ -130,12 +130,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
       - uses: ./.github/actions/cacheDockerRetry
@@ -161,12 +161,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
       - uses: ./.github/actions/cacheDockerRetry
@@ -192,12 +192,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
       - uses: ./.github/actions/cacheDockerRetry
@@ -223,12 +223,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
       - uses: ./.github/actions/cacheDockerRetry
@@ -254,12 +254,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -277,12 +277,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
       - uses: ./.github/actions/cacheDockerRetry
@@ -308,12 +308,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
       - uses: ./.github/actions/cacheDockerRetry
@@ -339,12 +339,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -362,12 +362,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -385,12 +385,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
       - uses: ./.github/actions/cacheDockerRetry
@@ -416,12 +416,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
       - uses: ./.github/actions/cacheDockerRetry
@@ -447,12 +447,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
       - uses: ./.github/actions/cacheDockerRetry
@@ -478,12 +478,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
       - uses: ./.github/actions/cacheDockerRetry
@@ -509,12 +509,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
       - uses: ./.github/actions/cacheDockerRetry
@@ -540,12 +540,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -563,12 +563,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
       - uses: ./.github/actions/cacheDockerRetry
@@ -594,12 +594,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
       - uses: ./.github/actions/cacheDockerRetry
@@ -625,12 +625,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
       - uses: ./.github/actions/cacheDockerRetry
@@ -656,12 +656,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
       - uses: ./.github/actions/cacheDockerRetry
@@ -687,12 +687,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
       - uses: ./.github/actions/cacheDockerRetry
@@ -718,12 +718,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
       - uses: ./.github/actions/cacheDockerRetry
@@ -749,12 +749,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - run: echo "127.0.0.1       job-engine" | sudo tee -a /etc/hosts
       - uses: ./.github/actions/cacheDockerRetry
@@ -780,12 +780,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -803,12 +803,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - uses: ./.github/actions/cacheDockerRetry
         with:
@@ -833,12 +833,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - run: echo "127.0.0.1       message-broker" | sudo tee -a /etc/hosts
       - uses: ./.github/actions/cacheDockerRetry
         with:
@@ -863,12 +863,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - uses: nick-fields/retry@v2.8.1
         with:
           timeout_minutes: 45
@@ -886,12 +886,12 @@ jobs:
           distribution: 'zulu'
           java-version: 11
           cache: 'maven'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+#      - uses: actions/cache@v3 # Cache local Maven repository to reuse dependencies
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: |
+#            ${{ runner.os }}-maven-
       - run: mvn -B -DskipTests install javadoc:jar
       - run: bash <(curl -s https://codecov.io/bash)
 

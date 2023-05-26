@@ -1,5 +1,5 @@
 name: 'Cache Docker Retry'
-description: 'Retries the caching retrieval of docker images'
+description: 'Retries the caching retrieval of docker images. This is a wrapper of the docker cache gitAction that retries the action with a delay in each retry. This is useful because sometimes concurrent usage of this gitAction causes too many requests error and so it is needed to retry it'
 inputs:
   key:
     description: An explicit key for restoring and saving the cache
@@ -18,7 +18,7 @@ runs:
   using: "composite"
   steps:
     - name: Docker images caching - try 1
-      id: dock1 #TODO: should this ID be changed on a jobBasis? like, using jobId or similar. Doubt born by the check in the next conditional statement "steps.dock1.outcome"...
+      id: dock1 #TODO: should this ID be changed on a jobBasis? like, using jobId or similar. Doubt born by the check in the next conditional statement "steps.dock1.outcome"...I don't think this is needed because different vm execute the jobs
       continue-on-error: true
       uses: jpribyl/action-docker-layer-caching@v0.1.1
       with:
@@ -30,7 +30,7 @@ runs:
       run: sleep 30 #TODO could implement a sleep different for each job. For example something like {JOBIDNUMBER * OFFSETseconds}
       shell: bash
     - name: Docker images caching - try 2
-      if: ${{ always() && steps.dock1.outcome == 'failure' }} #NOTE : this failure test could be replaced by a counting of kapua images in the environment. TODO if this check don't work on failure of previous cache retrieval
+      if: ${{ always() && steps.dock1.outcome == 'failure' }} #NOTE : this failure test could be replaced (orr augmented) by a counting of kapua images in the environment. TODO if this check don't work on failure of previous cache retrieval
       id: dock2
       continue-on-error: true
       uses: jpribyl/action-docker-layer-caching@v0.1.1
