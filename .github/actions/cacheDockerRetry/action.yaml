@@ -18,7 +18,7 @@ runs:
   using: "composite"
   steps:
     - name: Docker images caching - try 1
-      id: dock1 #TODO: should this ID be changed on a jobBasis? like, using jobId or similar. Doubt born by the check in the next conditional statement "steps.dock1.outcome"...I don't think this is needed because different vm execute the jobs
+      id: dock1
       continue-on-error: true
       uses: jpribyl/action-docker-layer-caching@v0.1.1
       with:
