@@ -9,10 +9,6 @@ inputs:
     description: An ordered list of keys to use for restoring the cache if no cache hit occurred for key
     required: false
     default: docker-layer-caching-${{ github.workflow }}-
-  skip-save:
-    description: Skip saving layers in the post step
-    required: false
-    default: 'false'
 #outputs:
 runs:
   using: "composite"
@@ -24,7 +20,7 @@ runs:
       with:
         key: ${{ inputs.key }}
         restore-keys: ${{ inputs.restore-keys }}
-        skip-save: ${{ inputs.skip-save }}
+        skip-save: true
     - name: retry-sleep-1
       if: ${{ always() && steps.dock1.outcome == 'failure' }} # the first status check function call (always) is needed for how status check functions works in GitHub actions (see https://docs.github.com/en/actions/learn-github-actions/expressions#status-check-functions)
       run: sleep 30 #TODO could implement a sleep different for each job. For example something like {JOBIDNUMBER * OFFSETseconds}
@@ -37,7 +33,7 @@ runs:
       with:
         key: ${{ inputs.key }}
         restore-keys: ${{ inputs.restore-keys }}
-        skip-save: ${{ inputs.skip-save }}
+        skip-save: true
     - name: retry-sleep-2
       if: ${{ always() && steps.dock2.outcome == 'failure' }}
       run: sleep 60
@@ -50,4 +46,4 @@ runs:
       with:
         key: ${{ inputs.key }}
         restore-keys: ${{ inputs.restore-keys }}
-        skip-save: ${{ inputs.skip-save }}
+        skip-save: true
