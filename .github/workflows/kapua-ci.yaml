@@ -23,6 +23,7 @@ jobs:
           key: ${{ github.run_id }}-${{ github.run_number }}-maven-cache
       - run: mvn -v
       - run: docker images -a  # used as log (should show only github environment standard docker images; if kapua images are present, something is wrong)
+      - run: docker rmi $(docker images -aq) # delete pre-existing images to speed up images caching
       - uses: jpribyl/action-docker-layer-caching@v0.1.1  # docker images cache
         continue-on-error: true
         with:
