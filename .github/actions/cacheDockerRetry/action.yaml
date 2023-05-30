@@ -51,5 +51,5 @@ runs:
       if: ${{ always() && steps.dock3.outcome == 'failure' }}
       continue-on-error: true
       id: buildDock
-      run: mvn clean install -pl org.eclipse.kapua:kapua-service-authentication-app,org.eclipse.kapua:kapua-consumer-lifecycle-app,org.eclipse.kapua:kapua-consumer-telemetry-app && mvn clean install -Pdocker --f assembly/pom.xml
+      run: mvn clean install -pl ${APP_PROJECTS} && mvn clean install -Pdocker --f assembly/pom.xml
       shell: bash
