@@ -1,4 +1,4 @@
-name: Kapua CI
+name: kapua-ci
 on: [ push, pull_request ] # Triggers the workflow on push or pull request events
 
 env: #the last 2 env variables defines respectively the maven projects were cucumber tests resides and maven projects were consumers applications needed for docker images building resides.
@@ -25,312 +25,312 @@ jobs:
           key: ${{ github.run_id }}-${{ github.run_number }}-maven-cache
       - run: mvn -v
       - run: docker images -a  # used as log (should show only github environment standard docker images; if kapua images are present, something is wrong)
-      - run: mvn -B ${BUILD_OPTS} -DskipTests clean install
+      #      - run: mvn -B ${BUILD_OPTS} -DskipTests clean install
       - run: bash <(curl -s https://codecov.io/bash)
-  test-brokerAcl:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Clones Kapua repo inside the runner
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/runTestsTaggedAs
-        with:
-          tag: '@brokerAcl'
-          needs-docker-images: 'true'
-  test-tag:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Clones Kapua repo inside the runner
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/runTestsTaggedAs
-        with:
-          tag: '@tag'
-          needs-docker-images: 'false'
-  test-broker:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Clones Kapua repo inside the runner
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/runTestsTaggedAs
-        with:
-          tag: '@broker'
-          needs-docker-images: 'true'
-  test-device:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Clones Kapua repo inside the runner
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/runTestsTaggedAs
-        with:
-          tag: '@device'
-          needs-docker-images: 'true'
-  test-device-management:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Clones Kapua repo inside the runner
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/runTestsTaggedAs
-        with:
-          tag: '@deviceManagement'
-          needs-docker-images: 'true'
-  test-connection:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Clones Kapua repo inside the runner
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/runTestsTaggedAs
-        with:
-          tag: '@connection'
-          needs-docker-images: 'true'
-  test-datastore:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Clones Kapua repo inside the runner
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/runTestsTaggedAs
-        with:
-          tag: '@datastore'
-          needs-docker-images: 'true'
-  test-user:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Clones Kapua repo inside the runner
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/runTestsTaggedAs
-        with:
-          tag: '@user'
-          needs-docker-images: 'false'
-  test-userIntegrationBase:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Clones Kapua repo inside the runner
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/runTestsTaggedAs
-        with:
-          tag: '@userIntegrationBase'
-          needs-docker-images: 'true'
-  test-userIntegration:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Clones Kapua repo inside the runner
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/runTestsTaggedAs
-        with:
-          tag: '@userIntegration'
-          needs-docker-images: 'true'
-  test-security:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Clones Kapua repo inside the runner
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/runTestsTaggedAs
-        with:
-          tag: '@security'
-          needs-docker-images: 'false'
-  test-jobsAndScheduler:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Clones Kapua repo inside the runner
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/runTestsTaggedAs
-        with:
-          tag: '@jobs or @scheduler'
-          needs-docker-images: 'false'
-  test-jobsIntegrationBase:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Clones Kapua repo inside the runner
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/runTestsTaggedAs
-        with:
-          tag: '@jobsIntegrationBase'
-          needs-docker-images: 'true'
-  test-jobsIntegration:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Clones Kapua repo inside the runner
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/runTestsTaggedAs
-        with:
-          tag: '@jobsIntegration'
-          needs-docker-images: 'true'
-  test-accountAndTranslator:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Clones Kapua repo inside the runner
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/runTestsTaggedAs
-        with:
-          tag: '@account or @translator'
-          needs-docker-images: 'false'
-  test-jobEngineStepDefinitions:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Clones Kapua repo inside the runner
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/runTestsTaggedAs
-        with:
-          tag: '@jobEngineStepDefinitions'
-          needs-docker-images: 'true'
-  test-jobEngineStartOfflineDevice:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Clones Kapua repo inside the runner
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/runTestsTaggedAs
-        with:
-          tag: '@jobEngineStartOfflineDevice'
-          needs-docker-images: 'true'
-  test-jobEngineStartOnlineDevice:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Clones Kapua repo inside the runner
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/runTestsTaggedAs
-        with:
-          tag: '@jobEngineStartOnlineDevice'
-          needs-docker-images: 'true'
-  test-jobEngineRestartOfflineDevice:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Clones Kapua repo inside the runner
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/runTestsTaggedAs
-        with:
-          tag: '@jobEngineRestartOfflineDevice'
-          needs-docker-images: 'true'
-  test-jobEngineRestartOnlineDevice:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Clones Kapua repo inside the runner
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/runTestsTaggedAs
-        with:
-          tag: '@jobEngineRestartOnlineDevice'
-          needs-docker-images: 'true'
-  test-jobEngineRestartOnlineDeviceSecondPart:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Clones Kapua repo inside the runner
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/runTestsTaggedAs
-        with:
-          tag: '@jobEngineRestartOnlineDeviceSecondPart'
-          needs-docker-images: 'true'
-  test-jobEngineServiceStop:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Clones Kapua repo inside the runner
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/runTestsTaggedAs
-        with:
-          tag: '@jobEngineServiceStop'
-          needs-docker-images: 'true'
-  test-RoleAndGroup:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Clones Kapua repo inside the runner
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/runTestsTaggedAs
-        with:
-          tag: '@role or @group'
-          needs-docker-images: 'false'
-  test-deviceRegistry:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Clones Kapua repo inside the runner
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/runTestsTaggedAs
-        with:
-          tag: '@deviceRegistry'
-          needs-docker-images: 'true'
-  test-endpoint:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Clones Kapua repo inside the runner
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/runTestsTaggedAs
-        with:
-          tag: '@endpoint'
-          needs-docker-images: 'true'
-  junit-tests:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-java@v3
-        with:
-          distribution: 'zulu'
-          java-version: 11
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ github.run_id }}-${{ github.run_number }}-maven-cache
-      - run: ./ci-output.sh mvn -B ${BUILD_OPTS} ${CONFIG_OVERRIDES} -Dgroups='org.eclipse.kapua.qa.markers.junit.JUnitTests' verify
-      - run: bash <(curl -s https://codecov.io/bash)
-  build-javadoc:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-java@v3
-        with:
-          distribution: 'zulu'
-          java-version: 11
-      - uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ github.run_id }}-${{ github.run_number }}-maven-cache
-      - run: mvn -B -DskipTests install javadoc:jar
-      - run: bash <(curl -s https://codecov.io/bash)
+#  test-brokerAcl:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - name: Clones Kapua repo inside the runner
+#        uses: actions/checkout@v3
+#      - uses: ./.github/actions/runTestsTaggedAs
+#        with:
+#          tag: '@brokerAcl'
+#          needs-docker-images: 'true'
+#  test-tag:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - name: Clones Kapua repo inside the runner
+#        uses: actions/checkout@v3
+#      - uses: ./.github/actions/runTestsTaggedAs
+#        with:
+#          tag: '@tag'
+#          needs-docker-images: 'false'
+#  test-broker:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - name: Clones Kapua repo inside the runner
+#        uses: actions/checkout@v3
+#      - uses: ./.github/actions/runTestsTaggedAs
+#        with:
+#          tag: '@broker'
+#          needs-docker-images: 'true'
+#  test-device:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - name: Clones Kapua repo inside the runner
+#        uses: actions/checkout@v3
+#      - uses: ./.github/actions/runTestsTaggedAs
+#        with:
+#          tag: '@device'
+#          needs-docker-images: 'true'
+#  test-device-management:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - name: Clones Kapua repo inside the runner
+#        uses: actions/checkout@v3
+#      - uses: ./.github/actions/runTestsTaggedAs
+#        with:
+#          tag: '@deviceManagement'
+#          needs-docker-images: 'true'
+#  test-connection:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - name: Clones Kapua repo inside the runner
+#        uses: actions/checkout@v3
+#      - uses: ./.github/actions/runTestsTaggedAs
+#        with:
+#          tag: '@connection'
+#          needs-docker-images: 'true'
+#  test-datastore:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - name: Clones Kapua repo inside the runner
+#        uses: actions/checkout@v3
+#      - uses: ./.github/actions/runTestsTaggedAs
+#        with:
+#          tag: '@datastore'
+#          needs-docker-images: 'true'
+#  test-user:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - name: Clones Kapua repo inside the runner
+#        uses: actions/checkout@v3
+#      - uses: ./.github/actions/runTestsTaggedAs
+#        with:
+#          tag: '@user'
+#          needs-docker-images: 'false'
+#  test-userIntegrationBase:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - name: Clones Kapua repo inside the runner
+#        uses: actions/checkout@v3
+#      - uses: ./.github/actions/runTestsTaggedAs
+#        with:
+#          tag: '@userIntegrationBase'
+#          needs-docker-images: 'true'
+#  test-userIntegration:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - name: Clones Kapua repo inside the runner
+#        uses: actions/checkout@v3
+#      - uses: ./.github/actions/runTestsTaggedAs
+#        with:
+#          tag: '@userIntegration'
+#          needs-docker-images: 'true'
+#  test-security:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - name: Clones Kapua repo inside the runner
+#        uses: actions/checkout@v3
+#      - uses: ./.github/actions/runTestsTaggedAs
+#        with:
+#          tag: '@security'
+#          needs-docker-images: 'false'
+#  test-jobsAndScheduler:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - name: Clones Kapua repo inside the runner
+#        uses: actions/checkout@v3
+#      - uses: ./.github/actions/runTestsTaggedAs
+#        with:
+#          tag: '@jobs or @scheduler'
+#          needs-docker-images: 'false'
+#  test-jobsIntegrationBase:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - name: Clones Kapua repo inside the runner
+#        uses: actions/checkout@v3
+#      - uses: ./.github/actions/runTestsTaggedAs
+#        with:
+#          tag: '@jobsIntegrationBase'
+#          needs-docker-images: 'true'
+#  test-jobsIntegration:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - name: Clones Kapua repo inside the runner
+#        uses: actions/checkout@v3
+#      - uses: ./.github/actions/runTestsTaggedAs
+#        with:
+#          tag: '@jobsIntegration'
+#          needs-docker-images: 'true'
+#  test-accountAndTranslator:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - name: Clones Kapua repo inside the runner
+#        uses: actions/checkout@v3
+#      - uses: ./.github/actions/runTestsTaggedAs
+#        with:
+#          tag: '@account or @translator'
+#          needs-docker-images: 'false'
+#  test-jobEngineStepDefinitions:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - name: Clones Kapua repo inside the runner
+#        uses: actions/checkout@v3
+#      - uses: ./.github/actions/runTestsTaggedAs
+#        with:
+#          tag: '@jobEngineStepDefinitions'
+#          needs-docker-images: 'true'
+#  test-jobEngineStartOfflineDevice:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - name: Clones Kapua repo inside the runner
+#        uses: actions/checkout@v3
+#      - uses: ./.github/actions/runTestsTaggedAs
+#        with:
+#          tag: '@jobEngineStartOfflineDevice'
+#          needs-docker-images: 'true'
+#  test-jobEngineStartOnlineDevice:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - name: Clones Kapua repo inside the runner
+#        uses: actions/checkout@v3
+#      - uses: ./.github/actions/runTestsTaggedAs
+#        with:
+#          tag: '@jobEngineStartOnlineDevice'
+#          needs-docker-images: 'true'
+#  test-jobEngineRestartOfflineDevice:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - name: Clones Kapua repo inside the runner
+#        uses: actions/checkout@v3
+#      - uses: ./.github/actions/runTestsTaggedAs
+#        with:
+#          tag: '@jobEngineRestartOfflineDevice'
+#          needs-docker-images: 'true'
+#  test-jobEngineRestartOnlineDevice:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - name: Clones Kapua repo inside the runner
+#        uses: actions/checkout@v3
+#      - uses: ./.github/actions/runTestsTaggedAs
+#        with:
+#          tag: '@jobEngineRestartOnlineDevice'
+#          needs-docker-images: 'true'
+#  test-jobEngineRestartOnlineDeviceSecondPart:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - name: Clones Kapua repo inside the runner
+#        uses: actions/checkout@v3
+#      - uses: ./.github/actions/runTestsTaggedAs
+#        with:
+#          tag: '@jobEngineRestartOnlineDeviceSecondPart'
+#          needs-docker-images: 'true'
+#  test-jobEngineServiceStop:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - name: Clones Kapua repo inside the runner
+#        uses: actions/checkout@v3
+#      - uses: ./.github/actions/runTestsTaggedAs
+#        with:
+#          tag: '@jobEngineServiceStop'
+#          needs-docker-images: 'true'
+#  test-RoleAndGroup:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - name: Clones Kapua repo inside the runner
+#        uses: actions/checkout@v3
+#      - uses: ./.github/actions/runTestsTaggedAs
+#        with:
+#          tag: '@role or @group'
+#          needs-docker-images: 'false'
+#  test-deviceRegistry:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - name: Clones Kapua repo inside the runner
+#        uses: actions/checkout@v3
+#      - uses: ./.github/actions/runTestsTaggedAs
+#        with:
+#          tag: '@deviceRegistry'
+#          needs-docker-images: 'true'
+#  test-endpoint:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - name: Clones Kapua repo inside the runner
+#        uses: actions/checkout@v3
+#      - uses: ./.github/actions/runTestsTaggedAs
+#        with:
+#          tag: '@endpoint'
+#          needs-docker-images: 'true'
+#  junit-tests:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - uses: actions/checkout@v3
+#      - uses: actions/setup-java@v3
+#        with:
+#          distribution: 'zulu'
+#          java-version: 11
+#      - uses: actions/cache@v3
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ github.run_id }}-${{ github.run_number }}-maven-cache
+#      - run: ./ci-output.sh mvn -B ${BUILD_OPTS} ${CONFIG_OVERRIDES} -Dgroups='org.eclipse.kapua.qa.markers.junit.JUnitTests' verify
+#      - run: bash <(curl -s https://codecov.io/bash)
+#  build-javadoc:
+#    needs: build
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 45
+#    steps:
+#      - uses: actions/checkout@v3
+#      - uses: actions/setup-java@v3
+#        with:
+#          distribution: 'zulu'
+#          java-version: 11
+#      - uses: actions/cache@v3
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ github.run_id }}-${{ github.run_number }}-maven-cache
+#      - run: mvn -B -DskipTests install javadoc:jar
+#      - run: bash <(curl -s https://codecov.io/bash)

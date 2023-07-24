@@ -1,34 +1,60 @@
-name: SonarCloud
-on:
-  push:
-    branches:
-      - 'develop'
-      - 'release-**'
-  pull_request:
-    types: [opened, synchronize, reopened]
+name: Sonar
 
-env:
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
-  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+on:
+  workflow_run:
+    workflows: [kapua-ci]
+    types:
+      - requested
 
 jobs:
-  scan:
-    name: Scan code with sonarCould
+  sonar:
+    name: Sonar
     runs-on: ubuntu-latest
+    #    if: github.event.workflow_run.conclusion == 'success'
     steps:
-      - uses: actions/checkout@v3
+      - name: Kapua checkout
+        if: github.event.workflow_run.event == 'pull_request'
+        uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-      - name: Set up JDK 11
-        uses: actions/setup-java@v3
+          repository: ${{ github.event.workflow_run.head_repository.full_name }}
+          ref: ${{ github.event.workflow_run.head_branch }}
+          fetch-depth: 0
+      - uses: actions/setup-java@v3
         with:
-          java-version: 11
           distribution: 'zulu'
-      - name: Cache SonarCloud packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
-      - name: SonarCloud scan
-        run: mvn -B compile org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=org.eclipse_kapua -Dsonar.organization=eclipse
+          java-version: 11
+      #      - name: 'Download code coverage'
+      #        uses: actions/github-script@v6
+      #        with:
+      #          script: |
+      #            let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
+      #               owner: context.repo.owner,
+      #               repo: context.repo.repo,
+      #               run_id: context.payload.workflow_run.id,
+      #            });
+      #            let matchArtifact = allArtifacts.data.artifacts.filter((artifact) => {
+      #              return artifact.name == "medplum-code-coverage"
+      #            })[0];
+      #            let download = await github.rest.actions.downloadArtifact({
+      #               owner: context.repo.owner,
+      #               repo: context.repo.repo,
+      #               artifact_id: matchArtifact.id,
+      #               archive_format: 'zip',
+      #            });
+      #            let fs = require('fs');
+      #            fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/medplum-code-coverage.zip`, Buffer.from(download.data));
+      #      - name: 'Unzip code coverage'
+      #        run: unzip medplum-code-coverage.zip -d coverage
+      - name: SonarCloud Scan
+        if: github.event.workflow_run.event == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: mvn -B compile org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
+          -Dsonar.projectKey=Agnul97_kapua
+          -Dsonar.organization=agnul97
+          -Dsonar.host.url=https://sonarcloud.io
+          -Dsonar.scm.revision=${{ github.event.workflow_run.head_sha }}
+          -Dsonar.pullrequest.key=${{ github.event.workflow_run.pull_requests[0].number }}
+          -Dsonar.pullrequest.branch=${{ github.event.workflow_run.pull_requests[0].head.ref }}
+          -Dsonar.pullrequest.base=${{ github.event.workflow_run.pull_requests[0].base.ref }}
