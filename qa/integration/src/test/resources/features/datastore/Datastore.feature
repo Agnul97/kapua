@@ -907,6 +907,40 @@ Feature: Datastore tests
     And No assertion error was thrown
     And I logout
 
+  Scenario: Dotted metrics
+  Checking of the number of messages that are associated with the correct metrics.
+  Searching for messages is done by all metrics.
+
+    Given I login as user with name "kapua-sys" and password "kapua-password"
+    And I start the Kura Mock
+    When Device is connected within 10 seconds
+    Then Device status is "CONNECTED" within 10 seconds
+    And I select account "kapua-sys"
+    And I get the KuraMock device after 5 seconds
+    And I set the database to device timestamp indexing
+    Then I prepare a number of messages with the following details and remember the list as "TestMessages"
+      | clientId      | topic            |
+      | test-client-1 | test_topic/1/2/3 |
+      | test-client-1 | test_topic/1/2/3 |
+      | test-client-1 | test_topic/1/2/3 |
+    And I set the following metrics with messages from the list "TestMessages"
+      | message | metric       | type   | value |
+      | 0       | dotted.metric.first | double | 123   |
+      | 1       | dotted.metric.second | double | 123   |
+      | 2       | dotted.metric.third | double | 123   |
+    Then I store the messages from list "TestMessages" and remember the IDs as "StoredMessageIDs"
+    And I refresh all indices
+#    When I query for the current account metrics and store them as "AccountMetrics"
+#    Then There are exactly 4 metrics in the list "AccountMetrics"
+    When I create message query for following metrics
+      | dotted$2emetric$2efirst  |
+      | dotted$2emetric$2esecond |
+      | dotted$2emetric$2ethird  |
+    And I count data messages for more metrics
+    Then I count 3 data messages
+    And No assertion error was thrown
+    And I logout
+
   Scenario: Finding messages with incorrect metric parameters
   Checking of the number of messages that are associated with the incorrect metrics.
   Searching for messages is done by one metric.
