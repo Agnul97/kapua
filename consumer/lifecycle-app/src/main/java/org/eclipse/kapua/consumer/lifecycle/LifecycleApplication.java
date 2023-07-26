@@ -33,7 +33,7 @@ public class LifecycleApplication {
         SecurityUtil.initSecurityManager();
     }
 
-    public void doNothing() {
+    public void doNothing() { //TODO : CODE SMELL HERE
         //spring needs a public constructor but our checkstyle doesn't allow a class with only static methods and a public constructor
     }
 
