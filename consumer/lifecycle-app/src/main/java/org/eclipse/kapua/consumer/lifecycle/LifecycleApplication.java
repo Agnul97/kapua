@@ -37,7 +37,7 @@ public class LifecycleApplication {
         //spring needs a public constructor but our checkstyle doesn't allow a class with only static methods and a public constructor
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) { //TODO : CODE SMELL HERE 2
         //TODO to be injected!!!
         CommonsMetric.module = MetricsLifecycle.CONSUMER_LIFECYCLE;
         //statically set parameters
