@@ -72,6 +72,7 @@ public class AccessInfos extends AbstractKapuaResource {
             @QueryParam("userId") EntityId userId,
             @QueryParam("offset") @DefaultValue("0") int offset,
             @QueryParam("limit") @DefaultValue("50") int limit) throws KapuaException {
+        // TODO: code smell here
 
         AccessInfoQuery query = accessInfoFactory.newQuery(scopeId);
 
