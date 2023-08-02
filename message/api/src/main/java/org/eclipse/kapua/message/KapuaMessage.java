@@ -26,7 +26,7 @@ import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
 import java.util.UUID;
-
+//todo: code smell
 /**
  * {@link KapuaMessage} definition.
  *
