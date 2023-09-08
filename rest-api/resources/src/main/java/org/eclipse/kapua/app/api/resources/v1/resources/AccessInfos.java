@@ -51,7 +51,7 @@ import javax.ws.rs.core.Response;
 public class AccessInfos extends AbstractKapuaResource {
 
     private final KapuaLocator locator = KapuaLocator.getInstance();
-    private final AccessInfoService accessInfoService = locator.getService(AccessInfoService.class);
+    private final AccessInfoService accessInfoService = locator.getService(AccessInfoService.class); //TODO just to spawn a code smell
     private final AccessInfoFactory accessInfoFactory = locator.getFactory(AccessInfoFactory.class);
 
     /**
