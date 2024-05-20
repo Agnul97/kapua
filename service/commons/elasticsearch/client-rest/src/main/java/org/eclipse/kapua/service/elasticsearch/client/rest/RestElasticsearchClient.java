@@ -134,8 +134,8 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
 
             String id = responseNode.get(ElasticsearchKeywords.KEY_DOC_ID).asText();
             String index = responseNode.get(ElasticsearchKeywords.KEY_DOC_INDEX).asText();
-            String type = responseNode.get(ElasticsearchKeywords.KEY_DOC_TYPE).asText();
-            return new InsertResponse(id, new TypeDescriptor(index, type));
+//            String type = responseNode.get(ElasticsearchKeywords.KEY_DOC_TYPE).asText();
+            return new InsertResponse(id, new TypeDescriptor(index, "foo"));
         } else {
             throw buildExceptionFromUnsuccessfulResponse("Insert", insertResponse);
         }
@@ -160,8 +160,8 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
 
             String id = responseNode.get(ElasticsearchKeywords.KEY_DOC_ID).asText();
             String index = responseNode.get(ElasticsearchKeywords.KEY_DOC_INDEX).asText();
-            String type = responseNode.get(ElasticsearchKeywords.KEY_DOC_TYPE).asText();
-            return new UpdateResponse(id, new TypeDescriptor(index, type));
+//            String type = responseNode.get(ElasticsearchKeywords.KEY_DOC_TYPE).asText();
+            return new UpdateResponse(id, new TypeDescriptor(index, "foo"));
         } else {
             throw buildExceptionFromUnsuccessfulResponse("Update", updateResponse);
         }
@@ -203,7 +203,7 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
                     }
 
                     String indexName = jsonNode.get(ElasticsearchKeywords.KEY_DOC_INDEX).asText();
-                    String typeName = jsonNode.get(ElasticsearchKeywords.KEY_DOC_TYPE).asText();
+//                    String typeName = jsonNode.get(ElasticsearchKeywords.KEY_DOC_TYPE).asText();
                     int responseCode = jsonNode.get(ElasticsearchKeywords.KEY_STATUS).asInt();
                     if (!isRequestSuccessful(responseCode)) {
                         JsonNode failureNode = jsonNode.get(ElasticsearchKeywords.KEY_RESULT);
@@ -215,12 +215,12 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
                         if (StringUtils.isNotBlank(reason)) {
                             failureMessage = reason;
                         }
-                        bulkResponse.add(new UpdateResponse(metricId, new TypeDescriptor(indexName, typeName), failureMessage));
-                        LOG.info("Upsert failed [{}, {}, {}]", indexName, typeName, failureMessage);
+                        bulkResponse.add(new UpdateResponse(metricId, new TypeDescriptor(indexName, "foo"), failureMessage));
+                        LOG.info("Upsert failed [{}, {}, {}]", indexName, "foo", failureMessage);
                         continue;
                     }
-                    bulkResponse.add(new UpdateResponse(metricId, new TypeDescriptor(indexName, typeName)));
-                    LOG.debug("Upsert on channel metric successfully executed [{}.{}, {}]", indexName, typeName, metricId);
+                    bulkResponse.add(new UpdateResponse(metricId, new TypeDescriptor(indexName, "foo")));
+                    LOG.debug("Upsert on channel metric successfully executed [{}.{}, {}]", indexName, "foo", metricId);
                 } else {
                     throw new ClientInternalError("Empty JSON response from upsert");
                 }
@@ -279,9 +279,9 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
 
                 String id = result.get(ElasticsearchKeywords.KEY_DOC_ID).asText();
                 String index = result.get(ElasticsearchKeywords.KEY_DOC_INDEX).asText();
-                String type = result.get(ElasticsearchKeywords.KEY_DOC_TYPE).asText();
+//                String type = result.get(ElasticsearchKeywords.KEY_DOC_TYPE).asText();
 
-                object.put(ModelContext.TYPE_DESCRIPTOR_KEY, new TypeDescriptor(index, type));
+                object.put(ModelContext.TYPE_DESCRIPTOR_KEY, new TypeDescriptor(index, "foo"));
                 object.put(getModelContext().getIdKeyName(), id);
                 object.put(QueryConverter.QUERY_FETCH_STYLE_KEY, queryFetchStyle);
 
