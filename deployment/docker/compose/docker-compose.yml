@@ -6,7 +6,7 @@ services:
       - "3306:3306"
   es:
     container_name: es
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.8.1
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
     ports:
       - "9200:9200"
       - "9300:9300"
@@ -15,7 +15,11 @@ services:
       - discovery.type=single-node
       - transport.host=_site_
       - transport.ping_schedule=-1
-      - transport.tcp.connect_timeout=30s
+      - transport.connect_timeout=30s
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "xpack.security.enabled=false"
+      - "xpack.security.transport.ssl.enabled=false"
+      - "xpack.security.http.ssl.enabled=false"
   events-broker:
     container_name: events-broker
     image: kapua/kapua-events-broker:${IMAGE_VERSION}

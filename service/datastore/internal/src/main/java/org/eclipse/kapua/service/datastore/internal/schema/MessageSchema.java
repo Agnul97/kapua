@@ -352,7 +352,7 @@ public class MessageSchema {
                             new KeyValueEntry(SchemaKeys.KEY_DYNAMIC, true)});
             propertiesNode.set(MESSAGE_METRICS, messageMetrics);
 
-            ObjectNode messageBody = MappingUtils.newObjectNode(new KeyValueEntry[]{new KeyValueEntry(SchemaKeys.KEY_TYPE, SchemaKeys.TYPE_BINARY), new KeyValueEntry(SchemaKeys.KEY_INDEX, SchemaKeys.VALUE_FALSE)});
+            ObjectNode messageBody = MappingUtils.newObjectNode(new KeyValueEntry[]{new KeyValueEntry(SchemaKeys.KEY_TYPE, SchemaKeys.TYPE_BINARY)});
             propertiesNode.set(MESSAGE_BODY, messageBody);
         }
         return messageNode;
