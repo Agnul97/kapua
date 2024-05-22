@@ -20,6 +20,7 @@ services:
       - transport.connect_timeout=30s
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
       - "xpack.security.enabled=false"
+      - "action.destructive_requires_name=false"
   events-broker:
     container_name: events-broker
     image: kapua/kapua-events-broker:${IMAGE_VERSION}
