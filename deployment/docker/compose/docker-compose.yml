@@ -17,8 +17,9 @@ services:
       - discovery.type=single-node
       - transport.host=_site_
       - transport.ping_schedule=-1
-      - transport.tcp.connect_timeout=30s
+      - transport.connect_timeout=30s
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "xpack.security.enabled=false"
   events-broker:
     container_name: events-broker
     image: kapua/kapua-events-broker:${IMAGE_VERSION}
