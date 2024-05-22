@@ -178,7 +178,7 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
                     .append(upsertRequest.getId())
                     .append("\", \"_index\": \"")
                     .append(upsertRequest.getTypeDescriptor().getIndex())
-                    .append("\"}\n");
+                    .append("\"}}\n");
 
             bulkOperation.append("{ \"doc\": ");
             bulkOperation.append(writeRequestFromMap(storableMap));
