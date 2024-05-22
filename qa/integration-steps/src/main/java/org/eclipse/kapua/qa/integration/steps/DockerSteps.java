@@ -929,6 +929,7 @@ public class DockerSteps {
                         "transport.ping_schedule=-1 ",
                         "transport.tcp.connect_timeout=30s",
                         "ES_JAVA_OPTS=-Xms512m -Xmx512m",
+                        "action.destructive_requires_name=false",
                         "xpack.security.enabled=false" //to suppress warnings on disabled SSL
                 )
                 .image(ES_IMAGE)
