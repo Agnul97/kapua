@@ -68,7 +68,7 @@ public class DockerSteps {
 
     private static final String NETWORK_PREFIX = "kapua-net";
     private static final String KAPUA_VERSION = "2.1.0-SNAPSHOT-es8";
-    private static final String ES_IMAGE = "docker.elastic.co/elasticsearch/elasticsearch:8.13.4";
+    private static final String ES_IMAGE = "opensearchproject/opensearch:latest";
     private static final String BROKER_IMAGE = "kapua-broker-artemis";
     private static final String LIFECYCLE_CONSUMER_IMAGE = "kapua-consumer-lifecycle";
     private static final String TELEMETRY_CONSUMER_IMAGE = "kapua-consumer-telemetry";
@@ -929,10 +929,9 @@ public class DockerSteps {
                         "transport.ping_schedule=-1",
                         "transport.connect_timeout=30s",
                         "action.destructive_requires_name=false",
+                        "OPENSEARCH_INITIAL_ADMIN_PASSWORD=qs#HG^2E9alm[_[0",
                         "ES_JAVA_OPTS=-Xms512m -Xmx512m",
-                        "xpack.security.enabled=false",
-                        "xpack.security.transport.ssl.enabled=false",
-                        "xpack.security.http.ssl.enabled=false"
+                        "plugins.security.ssl.http.enabled=false"
                 )
                 .image(ES_IMAGE)
                 .build();

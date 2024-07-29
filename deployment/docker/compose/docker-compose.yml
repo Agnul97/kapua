@@ -6,7 +6,7 @@ services:
       - "3306:3306"
   es:
     container_name: es
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    image: opensearchproject/opensearch:latest
     ports:
       - "9200:9200"
       - "9300:9300"
@@ -16,11 +16,9 @@ services:
       - transport.host=_site_
       - transport.ping_schedule=-1
       - transport.connect_timeout=30s
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=qs#HG^2E9alm[_[0
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-      - "xpack.security.enabled=false"
-      - "xpack.security.transport.ssl.enabled=false"
-      - "xpack.security.http.ssl.enabled=false"
-      - "action.destructive_requires_name=false"
+      - "plugins.security.ssl.http.enabled=false"
   events-broker:
     container_name: events-broker
     image: kapua/kapua-events-broker:${IMAGE_VERSION}
