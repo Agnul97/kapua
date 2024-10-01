@@ -32,6 +32,8 @@ import org.eclipse.kapua.model.id.KapuaId;
 import org.eclipse.kapua.qa.common.StepData;
 import org.eclipse.kapua.service.account.Account;
 import org.eclipse.kapua.service.authentication.token.AccessToken;
+import org.eclipse.kapua.service.datastore.internal.setting.DatastoreElasticsearchClientSettings;
+import org.eclipse.kapua.service.datastore.internal.setting.DatastoreElasticsearchClientSettingsKey;
 import org.eclipse.kapua.service.user.User;
 import org.eclipse.kapua.service.user.UserListResult;
 import org.jose4j.json.internal.json_simple.JSONObject;
@@ -48,11 +50,14 @@ import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import java.util.Base64;
 
 @ScenarioScoped
 public class RestClientSteps {
 
     private static final Logger logger = LoggerFactory.getLogger(RestClientSteps.class);
+
+    private static final DatastoreElasticsearchClientSettings ES_CLIENT_SETTINGS = DatastoreElasticsearchClientSettings.getInstance();
 
     private static final String TOKEN_ID = "tokenId"; //jwt
     private static final String REFRESH_TOKEN = "refreshToken";
@@ -86,6 +91,15 @@ public class RestClientSteps {
             if (tokenId != null) {
                 conn.setRequestProperty("Authorization", "Bearer " + tokenId);
             }
+
+            String username = ES_CLIENT_SETTINGS.getString(DatastoreElasticsearchClientSettingsKey.USERNAME);
+            if (username != null && tokenId == null) {
+                String password = ES_CLIENT_SETTINGS.getString(DatastoreElasticsearchClientSettingsKey.PASSWORD);
+                String auth = username + ":" + password;
+                String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
+                conn.setRequestProperty("Authorization", "Basic " + encodedAuth);
+            }
+
             int httpRespCode = conn.getResponseCode();
             if (httpRespCode == 200) {
                 StringBuilder sb = new StringBuilder();
@@ -270,7 +284,7 @@ public class RestClientSteps {
     public void restResponseContaining(String checkStr) throws Exception {
         String restResponse = (String) stepData.get(REST_RESPONSE);
         Assert.assertTrue(String.format("Response %s doesn't include %s.", restResponse, checkStr),
-                restResponse.contains(checkStr));
+                restResponse.replaceAll("\\s+", " ").contains(checkStr));
     }
 
     @Then("I expect {string} header in the response with value {string}")
