@@ -91,10 +91,23 @@ import org.eclipse.kapua.service.device.management.keystore.model.DeviceKeystore
 import org.eclipse.kapua.service.device.management.keystore.model.DeviceKeystoreKeypair;
 import org.eclipse.kapua.service.device.management.keystore.model.DeviceKeystoreXmlRegistry;
 import org.eclipse.kapua.service.device.management.keystore.model.DeviceKeystores;
+import org.eclipse.kapua.service.device.management.message.request.KapuaRequestChannel;
+import org.eclipse.kapua.service.device.management.message.request.KapuaRequestMessage;
+import org.eclipse.kapua.service.device.management.message.request.KapuaRequestPayload;
+import org.eclipse.kapua.service.device.management.message.request.xml.RequestMessageXmlRegistry;
+import org.eclipse.kapua.service.device.management.message.response.KapuaResponseChannel;
+import org.eclipse.kapua.service.device.management.message.response.KapuaResponseMessage;
 import org.eclipse.kapua.service.device.management.packages.model.DevicePackages;
 import org.eclipse.kapua.service.device.management.packages.model.download.DevicePackageDownloadRequest;
 import org.eclipse.kapua.service.device.management.packages.model.install.DevicePackageInstallRequest;
 import org.eclipse.kapua.service.device.management.packages.model.uninstall.DevicePackageUninstallRequest;
+import org.eclipse.kapua.service.device.management.request.GenericRequestXmlRegistry;
+import org.eclipse.kapua.service.device.management.request.message.request.GenericRequestChannel;
+import org.eclipse.kapua.service.device.management.request.message.request.GenericRequestMessage;
+import org.eclipse.kapua.service.device.management.request.message.request.GenericRequestPayload;
+import org.eclipse.kapua.service.device.management.request.message.response.GenericResponseChannel;
+import org.eclipse.kapua.service.device.management.request.message.response.GenericResponseMessage;
+import org.eclipse.kapua.service.device.management.request.message.response.GenericResponsePayload;
 import org.eclipse.kapua.service.device.management.snapshot.DeviceSnapshots;
 import org.eclipse.kapua.service.job.JobListResult;
 import org.eclipse.kapua.service.job.JobQuery;
@@ -177,6 +190,26 @@ public class ConsoleJAXBContextProvider implements JAXBContextProvider {
                         KuraInventorySystemPackages.class,
                         KuraInventorySystemPackage.class,
                         DeviceInventoryXmlRegistry.class,
+
+                        // Device Management Requests
+                        KapuaRequestMessage.class,
+                        KapuaResponseMessage.class,
+                        KapuaRequestChannel.class,
+                        KapuaResponseChannel.class,
+                        KapuaRequestPayload.class,
+                        RequestMessageXmlRegistry.class,
+
+                        // Device Management Generic Request
+                        GenericRequestChannel.class,
+                        GenericRequestPayload.class,
+                        GenericRequestMessage.class,
+                        GenericResponseChannel.class,
+                        GenericResponsePayload.class,
+                        GenericResponseMessage.class,
+                        GenericRequestXmlRegistry.class,
+
+//                        JsonGenericRequestMessage.class,
+//                        JsonGenericResponseMessage.class,
 
                         // Device Management Keystore
                         DeviceKeystores.class,
