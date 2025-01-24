@@ -110,8 +110,8 @@ public class DeviceRequestManagementServiceImpl extends AbstractDeviceManagement
         genericRequestPayload.setBody(requestInput.getPayload().getBody());
 
         GenericRequestMessage genericRequestMessage = genericRequestFactory.newRequestMessage();
-        genericRequestMessage.setScopeId(requestInput.getScopeId());
-        genericRequestMessage.setDeviceId(requestInput.getDeviceId());
+        genericRequestMessage.setScopeId(scopeId);
+        genericRequestMessage.setDeviceId(deviceId);
         genericRequestMessage.setCapturedOn(new Date());
         genericRequestMessage.setChannel(genericRequestChannel);
         genericRequestMessage.setPayload(genericRequestPayload);
