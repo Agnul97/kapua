@@ -15,6 +15,8 @@ package org.eclipse.kapua.app.console;
 import org.eclipse.kapua.KapuaException;
 import org.eclipse.kapua.commons.configuration.metatype.TscalarImpl;
 import org.eclipse.kapua.commons.rest.model.IsJobRunningResponse;
+import org.eclipse.kapua.commons.rest.model.device.management.JsonGenericRequestMessage;
+import org.eclipse.kapua.commons.rest.model.device.management.JsonGenericResponseMessage;
 import org.eclipse.kapua.commons.rest.model.errors.CleanJobDataExceptionInfo;
 import org.eclipse.kapua.commons.rest.model.errors.ExceptionInfo;
 import org.eclipse.kapua.commons.rest.model.errors.JobAlreadyRunningExceptionInfo;
@@ -208,8 +210,8 @@ public class ConsoleJAXBContextProvider implements JAXBContextProvider {
                         GenericResponseMessage.class,
                         GenericRequestXmlRegistry.class,
 
-//                        JsonGenericRequestMessage.class,
-//                        JsonGenericResponseMessage.class,
+                        JsonGenericRequestMessage.class,
+                        JsonGenericResponseMessage.class,
 
                         // Device Management Keystore
                         DeviceKeystores.class,

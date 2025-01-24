@@ -12,7 +12,8 @@
  *******************************************************************************/
 package org.eclipse.kapua.app.api.core.model.device.management;
 
-import org.eclipse.kapua.app.api.core.model.message.JsonKapuaPayload;
+import org.eclipse.kapua.commons.rest.model.device.management.JsonGenericRequestMessage;
+import org.eclipse.kapua.commons.rest.model.message.JsonKapuaPayload;
 import org.eclipse.kapua.message.KapuaPayload;
 import org.eclipse.kapua.message.KapuaPosition;
 import org.eclipse.kapua.model.id.KapuaId;

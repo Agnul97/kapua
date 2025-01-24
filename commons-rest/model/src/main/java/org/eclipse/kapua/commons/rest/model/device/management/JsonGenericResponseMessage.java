@@ -10,15 +10,15 @@
  * Contributors:
  *     Eurotech - initial API and implementation
  *******************************************************************************/
-package org.eclipse.kapua.app.api.core.model.device.management;
+package org.eclipse.kapua.commons.rest.model.device.management;
 
-import org.eclipse.kapua.app.api.core.model.message.JsonKapuaPayload;
+import org.eclipse.kapua.commons.rest.model.message.JsonKapuaPayload;
 import org.eclipse.kapua.message.KapuaPayload;
 import org.eclipse.kapua.message.KapuaPosition;
 import org.eclipse.kapua.model.id.KapuaId;
 import org.eclipse.kapua.model.id.KapuaIdAdapter;
-import org.eclipse.kapua.service.device.management.request.message.request.GenericRequestChannel;
-import org.eclipse.kapua.service.device.management.request.message.request.GenericRequestMessage;
+import org.eclipse.kapua.service.device.management.request.message.response.GenericResponseChannel;
+import org.eclipse.kapua.service.device.management.request.message.response.GenericResponseMessage;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlTransient;
@@ -26,7 +26,7 @@ import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
 import java.util.UUID;
 
-public class JsonGenericRequestMessage {
+public class JsonGenericResponseMessage {
 
     private UUID id;
 
@@ -39,26 +39,26 @@ public class JsonGenericRequestMessage {
     private Date capturedOn;
 
     private KapuaPosition position;
-    private GenericRequestChannel channel;
+    private GenericResponseChannel channel;
     private JsonKapuaPayload payload;
 
-    public JsonGenericRequestMessage() {
+    public JsonGenericResponseMessage() {
     }
 
-    public JsonGenericRequestMessage(GenericRequestMessage genericRequestMessage) {
-        setId(genericRequestMessage.getId());
+    public JsonGenericResponseMessage(GenericResponseMessage genericResponseMessage) {
+        setId(genericResponseMessage.getId());
 
-        setScopeId(genericRequestMessage.getScopeId());
-        setDeviceId(genericRequestMessage.getDeviceId());
-        setClientId(genericRequestMessage.getClientId());
+        setScopeId(genericResponseMessage.getScopeId());
+        setDeviceId(genericResponseMessage.getDeviceId());
+        setClientId(genericResponseMessage.getClientId());
 
-        setReceivedOn(genericRequestMessage.getReceivedOn());
-        setSentOn(genericRequestMessage.getSentOn());
-        setCapturedOn(genericRequestMessage.getCapturedOn());
+        setReceivedOn(genericResponseMessage.getReceivedOn());
+        setSentOn(genericResponseMessage.getSentOn());
+        setCapturedOn(genericResponseMessage.getCapturedOn());
 
-        setPosition(genericRequestMessage.getPosition());
-        setChannel(genericRequestMessage.getChannel());
-        setPayload(genericRequestMessage.getPayload());
+        setPosition(genericResponseMessage.getPosition());
+        setChannel(genericResponseMessage.getChannel());
+        setPayload(genericResponseMessage.getPayload());
     }
 
     @XmlElement(name = "id")
@@ -136,11 +136,11 @@ public class JsonGenericRequestMessage {
     }
 
     @XmlElement(name = "channel")
-    public GenericRequestChannel getChannel() {
+    public GenericResponseChannel getChannel() {
         return channel;
     }
 
-    public void setChannel(GenericRequestChannel channel) {
+    public void setChannel(GenericResponseChannel channel) {
         this.channel = channel;
     }
 
