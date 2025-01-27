@@ -17,7 +17,10 @@ import javax.inject.Singleton;
 
 import org.eclipse.kapua.commons.core.AbstractKapuaModule;
 import org.eclipse.kapua.commons.core.JaxbClassProvider;
+import org.eclipse.kapua.commons.core.SimpleJaxbClassProvider;
 import org.eclipse.kapua.commons.liquibase.DatabaseCheckUpdate;
+import org.eclipse.kapua.service.device.management.request.message.request.JsonGenericRequestMessage;
+import org.eclipse.kapua.service.device.management.request.message.response.JsonGenericResponseMessage;
 import org.eclipse.kapua.commons.util.xml.JAXBContextProvider;
 import org.eclipse.kapua.commons.util.xml.JAXBContextProviderImpl;
 import org.eclipse.kapua.commons.util.xml.XmlRootAnnotatedJaxbClassesScanner;
@@ -41,6 +44,14 @@ public class AppModule extends AbstractKapuaModule {
     @ProvidesIntoSet
     JaxbClassProvider jaxbClassesAutoDiscoverer(LocatorConfig locatorConfig) {
         return new XmlRootAnnotatedJaxbClassesScanner(locatorConfig);
+    }
+
+    @ProvidesIntoSet
+    JaxbClassProvider jobEngineCustomClassesForJaxb(LocatorConfig locatorConfig) {
+        return new SimpleJaxbClassProvider(
+                JsonGenericRequestMessage.class,
+                JsonGenericResponseMessage.class
+        );
     }
 
     @Provides
