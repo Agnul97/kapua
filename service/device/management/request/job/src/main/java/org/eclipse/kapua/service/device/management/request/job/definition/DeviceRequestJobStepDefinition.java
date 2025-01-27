@@ -44,7 +44,7 @@ public class DeviceRequestJobStepDefinition extends JobStepDefinitionRecord {
                 Lists.newArrayList(
                         new JobStepPropertyRecord(
                                 DeviceRequestPropertyKeys.COMMAND_REQUEST_INPUT,
-                                "JSON string that defines the generic device request to be executed", //TODO: add json format
+                                "JSON string that defines the generic device request to be executed",
                                 JsonGenericRequestMessage.class.getName(),
                                 null,
                                 "{\n" +
