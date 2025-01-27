@@ -10,15 +10,13 @@
  * Contributors:
  *     Eurotech - initial API and implementation
  *******************************************************************************/
-package org.eclipse.kapua.commons.rest.model.device.management;
+package org.eclipse.kapua.service.device.management.request.message.response;
 
-import org.eclipse.kapua.commons.rest.model.message.JsonKapuaPayload;
+import org.eclipse.kapua.service.device.management.request.message.JsonKapuaPayload;
 import org.eclipse.kapua.message.KapuaPayload;
 import org.eclipse.kapua.message.KapuaPosition;
 import org.eclipse.kapua.model.id.KapuaId;
 import org.eclipse.kapua.model.id.KapuaIdAdapter;
-import org.eclipse.kapua.service.device.management.request.message.response.GenericResponseChannel;
-import org.eclipse.kapua.service.device.management.request.message.response.GenericResponseMessage;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlTransient;

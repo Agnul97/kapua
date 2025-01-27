@@ -13,7 +13,7 @@
 package org.eclipse.kapua.service.device.management.request.job.definition;
 
 import com.beust.jcommander.internal.Lists;
-import org.eclipse.kapua.commons.rest.model.device.management.JsonGenericRequestMessage;
+import org.eclipse.kapua.service.device.management.request.message.request.JsonGenericRequestMessage;
 import org.eclipse.kapua.model.id.KapuaId;
 import org.eclipse.kapua.service.device.management.request.DeviceRequestManagementService;
 import org.eclipse.kapua.service.device.management.request.job.DeviceRequestTargetProcessor;

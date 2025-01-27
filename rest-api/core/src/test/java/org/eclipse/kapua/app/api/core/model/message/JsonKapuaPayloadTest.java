@@ -12,7 +12,7 @@
  *******************************************************************************/
 package org.eclipse.kapua.app.api.core.model.message;
 
-import org.eclipse.kapua.commons.rest.model.message.JsonKapuaPayload;
+import org.eclipse.kapua.service.device.management.request.message.JsonKapuaPayload;
 import org.eclipse.kapua.message.KapuaPayload;
 import org.eclipse.kapua.message.xml.XmlAdaptedMetric;
 import org.eclipse.kapua.qa.markers.junit.JUnitTests;

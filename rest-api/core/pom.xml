@@ -81,10 +81,6 @@
             <groupId>org.eclipse.kapua</groupId>
             <artifactId>kapua-job-engine-api</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.eclipse.kapua</groupId>
-            <artifactId>kapua-commons-rest-model</artifactId>
-        </dependency>
 
         <!-- re-declare as provided as our web container will provide this -->
         <dependency>

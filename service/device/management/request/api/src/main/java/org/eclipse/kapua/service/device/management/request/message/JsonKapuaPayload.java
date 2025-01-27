@@ -10,7 +10,7 @@
  * Contributors:
  *     Eurotech - initial API and implementation
  *******************************************************************************/
-package org.eclipse.kapua.commons.rest.model.message;
+package org.eclipse.kapua.service.device.management.request.message;
 
 import org.eclipse.kapua.message.KapuaPayload;
 import org.eclipse.kapua.message.xml.XmlAdaptedMetric;

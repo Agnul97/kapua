@@ -16,8 +16,8 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import org.eclipse.kapua.app.api.core.model.StorableEntityId;
-import org.eclipse.kapua.commons.rest.model.device.management.JsonGenericRequestMessage;
-import org.eclipse.kapua.commons.rest.model.device.management.JsonGenericResponseMessage;
+import org.eclipse.kapua.service.device.management.request.message.request.JsonGenericRequestMessage;
+import org.eclipse.kapua.service.device.management.request.message.response.JsonGenericResponseMessage;
 import org.eclipse.kapua.app.api.core.settings.KapuaApiCoreSetting;
 import org.eclipse.kapua.app.api.core.settings.KapuaApiCoreSettingKeys;
 import org.eclipse.kapua.app.api.resources.v1.resources.model.device.management.keystore.DeviceKeystoreCertificateInfo;

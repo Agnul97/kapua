@@ -13,7 +13,7 @@
 package org.eclipse.kapua.service.device.management.request.job;
 
 import org.eclipse.kapua.KapuaException;
-import org.eclipse.kapua.commons.rest.model.device.management.JsonGenericRequestMessage;
+import org.eclipse.kapua.service.device.management.request.message.request.JsonGenericRequestMessage;
 import org.eclipse.kapua.commons.security.KapuaSecurityUtils;
 import org.eclipse.kapua.job.engine.commons.operation.AbstractDeviceTargetProcessor;
 import org.eclipse.kapua.job.engine.commons.wrappers.JobTargetWrapper;
