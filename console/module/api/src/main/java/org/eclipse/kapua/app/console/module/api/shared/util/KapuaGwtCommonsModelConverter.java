@@ -17,6 +17,7 @@ import org.eclipse.kapua.app.console.module.api.shared.model.GwtUpdatableEntityM
 import org.eclipse.kapua.model.KapuaEntity;
 import org.eclipse.kapua.model.KapuaEntityBase;
 import org.eclipse.kapua.model.KapuaUpdatableEntity;
+import org.eclipse.kapua.model.KapuaUpdatableEntityBase;
 import org.eclipse.kapua.model.id.KapuaId;
 
 public class KapuaGwtCommonsModelConverter {
@@ -498,6 +499,7 @@ public class KapuaGwtCommonsModelConverter {
      * @param gwtEntity
      *         The {@link GwtUpdatableEntityModel} into which copy values
      * @since 1.0.0
+     * TODO: remove this method when split DTO-BO will be finished for all entities
      */
     public static void convertUpdatableEntity(KapuaUpdatableEntity kapuaEntity, GwtUpdatableEntityModel gwtEntity) {
         if (kapuaEntity == null || gwtEntity == null) {
@@ -512,6 +514,28 @@ public class KapuaGwtCommonsModelConverter {
     }
 
     /**
+     * Utility method to convertKapuaId commons properties of {@link KapuaUpdatableEntityBase} object to the GWT matching {@link GwtUpdatableEntityModel} object
+     *
+     * @param kapuaEntity
+     *         The {@link KapuaUpdatableEntityBase} from which to copy values
+     * @param gwtEntity
+     *         The {@link GwtUpdatableEntityModel} into which copy values
+     * @since 2.1.0
+     * TODO: remove this method when split DTO-BO will be finished for all entities
+     */
+    public static void convertUpdatableEntity(KapuaUpdatableEntityBase kapuaEntity, GwtUpdatableEntityModel gwtEntity) {
+        if (kapuaEntity == null || gwtEntity == null) {
+            return;
+        }
+
+        convertEntity((KapuaEntityBase) kapuaEntity, (GwtEntityModel) gwtEntity);
+
+        gwtEntity.setModifiedOn(kapuaEntity.getModifiedOn());
+        gwtEntity.setModifiedBy(convertKapuaId(kapuaEntity.getModifiedBy()));
+        gwtEntity.setOptlock(kapuaEntity.getOptlock());
+    }
+
+    /**
      * Utility method to convertKapuaId commons properties of {@link KapuaEntity} object to the GWT matching {@link GwtEntityModel} object
      *
      * @param kapuaEntity
@@ -519,6 +543,7 @@ public class KapuaGwtCommonsModelConverter {
      * @param gwtEntity
      *         The {@link GwtEntityModel} into which copy values
      * @since 1.0.0
+     * TODO: remove this method when split DTO-BO will be finished for all entities
      */
     public static void convertEntity(KapuaEntity kapuaEntity, GwtEntityModel gwtEntity) {
         if (kapuaEntity == null || gwtEntity == null) {
@@ -531,6 +556,15 @@ public class KapuaGwtCommonsModelConverter {
         gwtEntity.setCreatedBy(convertKapuaId(kapuaEntity.getCreatedBy()));
     }
 
+    /**
+     * Utility method to convertKapuaId commons properties of {@link KapuaEntityBase} object to the GWT matching {@link GwtEntityModel} object
+     *
+     * @param kapuaEntity
+     *         The {@link KapuaEntityBase} from which to copy values
+     * @param gwtEntity
+     *         The {@link GwtEntityModel} into which copy values
+     * @since 2.1.0
+     */
     public static void convertEntity(KapuaEntityBase kapuaEntity, GwtEntityModel gwtEntity) {
         if (kapuaEntity == null || gwtEntity == null) {
             return;
