@@ -285,6 +285,113 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
     }
 
     @Override
+    public <T> ResultList<T> queryAllResults(String index, Object query, Class<T> clazz) throws ClientException {
+        JsonNode queryJsonNode = getModelConverter().convertQueryScrolling(query);
+        LOG.debug("Query With Scroll API - converted query: '{}'", queryJsonNode);
+
+        String json = writeRequestFromJsonNode(queryJsonNode);
+
+        // Initialize scroll search (first request that gives scroll_id for subsequent requests)
+        Request scrollInitRequest = new Request(ElasticsearchKeywords.ACTION_GET, ElasticsearchResourcePaths.search(index));
+        scrollInitRequest.addParameter("scroll", "5m"); // Keep scroll context alive for 5 minutes TODO: make it configurable for production
+        scrollInitRequest.setJsonEntity(json);
+        Response scrollInitResponse = restCallTimeoutHandler(() -> getClient().performRequest(scrollInitRequest), index, "QUERY WITH SCROLL API - INIT");
+
+        ResultList<T> resultList = new ResultList<>(0);
+        String scrollId = null;
+        Object queryFetchStyle = getModelConverter().getFetchStyle(query);
+
+        try {
+            if (isRequestSuccessful(scrollInitResponse)) {
+                JsonNode responseNode = readResponseAsJsonNode(scrollInitResponse);
+                scrollId = responseNode.path(ElasticsearchKeywords.KEY_SCROLL_ID).asText();
+
+                JsonNode hitsNode = responseNode.path(ElasticsearchKeywords.KEY_HITS);
+                long totalCount = hitsNode.path(ElasticsearchKeywords.KEY_TOTAL).path(ElasticsearchKeywords.KEY_VALUE).asLong();
+                String totalRelation = hitsNode.path(ElasticsearchKeywords.KEY_TOTAL).path(ElasticsearchKeywords.KEY_RELATION).asText();
+
+                if (totalCount > Integer.MAX_VALUE) {
+                    throw new ClientException(ClientErrorCodes.ACTION_ERROR, CLIENT_HITS_MAX_VALUE_EXCEEDED);
+                }
+
+                resultList = new ResultList<>(totalCount);
+                if (totalRelation != null) {
+                    resultList.setTotalHitsExceedsCount(!totalRelation.equals("eq"));
+                }
+
+                // Process initial batch
+                ArrayNode resultsNode = (ArrayNode) hitsNode.get(ElasticsearchKeywords.KEY_HITS);
+                processScrollResults(resultsNode, resultList, clazz, queryFetchStyle);
+
+                // Continue scrolling until no more results
+                while (resultsNode != null && resultsNode.size() > 0) { //In this loop the scroll take place
+                    ObjectNode scrollRequest = objectMapper.createObjectNode();
+                    scrollRequest.put("scroll", "1m");
+                    scrollRequest.put("scroll_id", scrollId);
+
+                    String scrollJson = writeRequestFromJsonNode(scrollRequest);
+                    Request scrollNextRequest = new Request(ElasticsearchKeywords.ACTION_GET, "/_search/scroll");
+                    scrollNextRequest.setJsonEntity(scrollJson);
+                    Response scrollNextResponse = restCallTimeoutHandler(() -> getClient().performRequest(scrollNextRequest), index, "QUERY WITH SCROLL API - SCROLL");
+
+                    if (isRequestSuccessful(scrollNextResponse)) {
+                        responseNode = readResponseAsJsonNode(scrollNextResponse);
+                        scrollId = responseNode.path(ElasticsearchKeywords.KEY_SCROLL_ID).asText();
+                        hitsNode = responseNode.path(ElasticsearchKeywords.KEY_HITS);
+                        resultsNode = (ArrayNode) hitsNode.get(ElasticsearchKeywords.KEY_HITS);
+
+                        if (resultsNode != null && resultsNode.size() > 0) {
+                            processScrollResults(resultsNode, resultList, clazz, queryFetchStyle);
+                        }
+                    } else {
+                        throw buildExceptionFromUnsuccessfulResponse("Query All Results - Scroll", scrollNextResponse);
+                    }
+                }
+            } else if (isRequestCauseOfConcern(scrollInitResponse)) { //TODO: review this handling of exceptions
+                throw buildExceptionFromUnsuccessfulResponse("Query All Results", scrollInitResponse);
+            }
+        } finally {
+            // Clear scroll context
+            if (scrollId != null) {
+                try {
+                    ObjectNode clearScrollRequest = objectMapper.createObjectNode();
+                    ArrayNode scrollIds = objectMapper.createArrayNode();
+                    scrollIds.add(scrollId); //TODO: should save all used scroll ID iterations before and clear them all
+                    clearScrollRequest.set("scroll_id", scrollIds);
+
+                    String clearScrollJson = writeRequestFromJsonNode(clearScrollRequest);
+                    Request clearRequest = new Request(ElasticsearchKeywords.ACTION_DELETE, "/_search/scroll");
+                    clearRequest.setJsonEntity(clearScrollJson);
+                    restCallTimeoutHandler(() -> getClient().performRequest(clearRequest), index, "CLEAR SCROLL");
+                } catch (Exception e) {
+                    LOG.warn("Failed to clear scroll context: {}", scrollId, e);
+                }
+            }
+        }
+
+        return resultList;
+    }
+
+    private <T> void processScrollResults(ArrayNode resultsNode, ResultList<T> resultList, Class<T> clazz, Object queryFetchStyle) throws ClientException {
+        if (resultsNode == null || resultsNode.isEmpty()) {
+            return;
+        }
+
+        for (JsonNode result : resultsNode) {
+            Map<String, Object> object = objectMapper.convertValue(result.get(SchemaKeys.KEY_SOURCE), Map.class);
+
+            String id = result.get(ElasticsearchKeywords.KEY_DOC_ID).asText();
+            String docIndex = result.get(ElasticsearchKeywords.KEY_DOC_INDEX).asText();
+
+            object.put(ModelContext.TYPE_DESCRIPTOR_KEY, docIndex);
+            object.put(getModelContext().getIdKeyName(), id);
+            object.put(QueryConverter.QUERY_FETCH_STYLE_KEY, queryFetchStyle);
+
+            resultList.add(getModelContext().unmarshal(clazz, object));
+        }
+    }
+
+    @Override
     public long count(String index, Object query) throws ClientException {
         JsonNode queryJsonNode = getModelConverter().convertCountQuery(query);
 

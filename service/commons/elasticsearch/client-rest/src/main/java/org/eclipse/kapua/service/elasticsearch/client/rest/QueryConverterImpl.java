@@ -36,6 +36,7 @@ public class QueryConverterImpl implements QueryConverter {
     private static ConvertOptions convertOptionsCount = new ConvertOptions(false, true, false, false, false);
     private static ConvertOptions convertOptionsDelete = convertOptionsCount;
     private static ConvertOptions convertOptionsSearch = new ConvertOptions(true, true, true, true, true);
+    private static ConvertOptions convertOptionsScrolling = new ConvertOptions(true, true, true, false, true);
 
     @Override
     public JsonNode convertQuery(Object query) throws QueryMappingException {
@@ -50,6 +51,11 @@ public class QueryConverterImpl implements QueryConverter {
     @Override
     public JsonNode convertDeleteQuery(Object query) throws QueryMappingException {
         return convertQuery(query, convertOptionsDelete);
+    }
+
+    @Override
+    public JsonNode convertQueryScrolling(Object query) throws QueryMappingException {
+        return convertQuery(query, convertOptionsScrolling);
     }
 
     private JsonNode convertQuery(Object query, ConvertOptions convertOptions) throws QueryMappingException {
