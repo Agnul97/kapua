@@ -47,7 +47,8 @@ public class GwtDevice extends GwtUpdatableEntityModel implements Serializable {
         APP_PROV_V3("PROV-V3"), //
         APP_VPN_CLIENT("VPNCLIENT-V1"), //
         APP_CERTIFICATES("CERT-V1"), //
-        APP_ASSET_V1("ASSET-V1");
+        APP_ASSET_V1("ASSET-V1"),
+        APP_WIRE_V1("WIRE-V1");
 
         private final String appId;
 

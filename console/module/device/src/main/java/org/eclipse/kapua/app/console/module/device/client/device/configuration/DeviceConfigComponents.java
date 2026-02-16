@@ -68,6 +68,7 @@ import org.eclipse.kapua.app.console.module.api.shared.model.session.GwtSession;
 import org.eclipse.kapua.app.console.module.api.shared.service.GwtSecurityTokenService;
 import org.eclipse.kapua.app.console.module.api.shared.service.GwtSecurityTokenServiceAsync;
 import org.eclipse.kapua.app.console.module.device.client.device.configuration.settings.DeviceConfigurationsStoreSettingsDialog;
+import org.eclipse.kapua.app.console.module.device.client.device.wires.WireGraphDeleteButton;
 import org.eclipse.kapua.app.console.module.device.client.messages.ConsoleDeviceMessages;
 import org.eclipse.kapua.app.console.module.device.shared.model.GwtDevice;
 import org.eclipse.kapua.app.console.module.device.shared.service.GwtDeviceManagementService;
@@ -101,6 +102,8 @@ public class DeviceConfigComponents extends LayoutContainer {
     private Button reset;
 
     private Button settings;
+
+    private Button deleteWireGraphButton;
 
     private ContentPanel configPanel;
     private DeviceConfigPanel devConfPanel;
@@ -264,6 +267,9 @@ public class DeviceConfigComponents extends LayoutContainer {
         toolBar.add(reset);
         toolBar.add(new SeparatorToolItem());
         toolBar.add(settings);
+        toolBar.add(new SeparatorToolItem());
+
+        initWireGraphButtonsIfSupported();
     }
 
     private void initConfigPanel() {
@@ -386,6 +392,31 @@ public class DeviceConfigComponents extends LayoutContainer {
             }
         });
 
+    }
+
+    private void initWireGraphButtonsIfSupported() {
+        if (selectedDevice.hasApplication(GwtDevice.GwtDeviceApplication.APP_WIRE_V1)) {
+            deleteWireGraphButton = new WireGraphDeleteButton(new SelectionListener<ButtonEvent>() {
+                @Override
+                public void componentSelected(ButtonEvent buttonEvent) {
+                    KapuaMessageBox.confirm(
+                            MSGS.confirm(),
+                            "Are you sure you want to delete the wire graph configuration? This action cannot be undone.",
+                            new Listener<MessageBoxEvent>() {
+
+                                @Override
+                                public void handleEvent(MessageBoxEvent ce) {
+                                    Dialog dialog = ce.getDialog();
+                                    if (dialog.yesText.equals(ce.getButtonClicked().getText())) {
+                                        doDeleteWire();
+                                    }
+                                }
+                            });
+                }
+            });
+            toolBar.add(new SeparatorToolItem());
+            toolBar.add(deleteWireGraphButton);
+        }
     }
 
     // --------------------------------------------------------------------------------------
@@ -555,6 +586,38 @@ public class DeviceConfigComponents extends LayoutContainer {
                         }
                     }
                 });
+    }
+
+    public void doDeleteWire() {
+        configPanel.mask(MSGS.loading());
+        gwtXSRFService.generateSecurityToken(new AsyncCallback<GwtXSRFToken>() {
+
+            @Override
+            public void onFailure(Throwable ex) {
+                FailureHandler.handle(ex);
+                configPanel.unmask();
+            }
+
+            @Override
+            public void onSuccess(GwtXSRFToken token) {
+                gwtDeviceManagementService.deleteWireGraphConfiguration(
+                        token,
+                        selectedDevice,
+                        new AsyncCallback<Void>() {
+                            @Override
+                            public void onFailure(Throwable t) {
+                                FailureHandler.handle(t);
+                                configPanel.unmask();
+                            }
+
+                            @Override
+                            public void onSuccess(Void result) {
+                                dirty = true;
+                                refresh();
+                            }
+                        });
+            }
+        });
     }
 
     public void reset() {
