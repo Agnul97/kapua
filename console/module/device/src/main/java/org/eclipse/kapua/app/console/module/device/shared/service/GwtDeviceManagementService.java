@@ -118,4 +118,17 @@ public interface GwtDeviceManagementService extends RemoteService {
     GwtDeviceCommandOutput executeCommand(GwtXSRFToken xsfrToken, GwtDevice device, GwtDeviceCommandInput commandInput)
             throws GwtKapuaException;
 
+    // Wires
+
+    void deleteWireGraphConfiguration(GwtXSRFToken xsrfToken, GwtDevice device)
+            throws GwtKapuaException;
+
+    void updateWireGraphConfiguration(GwtXSRFToken xsrfToken, GwtDevice device, List<GwtConfigComponent> wireGraphConfiguration)
+            throws GwtKapuaException;
+
+    List<GwtConfigComponent> getWireGraphConfiguration(GwtXSRFToken xsrfToken, GwtDevice device)
+            throws GwtKapuaException;
+
+
+
 }

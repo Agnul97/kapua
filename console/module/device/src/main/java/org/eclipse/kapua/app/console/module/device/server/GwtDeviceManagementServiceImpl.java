@@ -100,6 +100,7 @@ import org.eclipse.kapua.service.device.management.packages.model.uninstall.Devi
 import org.eclipse.kapua.service.device.management.snapshot.DeviceSnapshot;
 import org.eclipse.kapua.service.device.management.snapshot.DeviceSnapshotManagementService;
 import org.eclipse.kapua.service.device.management.snapshot.DeviceSnapshots;
+import org.eclipse.kapua.service.device.management.wire.DeviceWiresManagementService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -137,6 +138,8 @@ public class GwtDeviceManagementServiceImpl extends KapuaRemoteServiceServlet im
     private static final DevicePackageFactory DEVICE_PACKAGE_FACTORY = LOCATOR.getFactory(DevicePackageFactory.class);
 
     private static final DeviceSnapshotManagementService SNAPSHOT_MANAGEMENT_SERVICE = LOCATOR.getService(DeviceSnapshotManagementService.class);
+
+    private static final DeviceWiresManagementService WIRE_MANAGEMENT_SERVICE = LOCATOR.getService(DeviceWiresManagementService.class);
 
     // Packages
     @Override
@@ -270,122 +273,14 @@ public class GwtDeviceManagementServiceImpl extends KapuaRemoteServiceServlet im
     @Override
     public List<GwtConfigComponent> findDeviceConfigurations(GwtDevice device)
             throws GwtKapuaException {
-        List<GwtConfigComponent> gwtConfigs = new ArrayList<GwtConfigComponent>();
+        List<GwtConfigComponent> gwtConfigs;
         try {
             KapuaId scopeId = KapuaEid.parseCompactId(device.getScopeId());
             KapuaId deviceId = KapuaEid.parseCompactId(device.getId());
+
             // Get the configuration
             DeviceConfiguration deviceConfigurations = CONFIGURATION_MANAGEMENT_SERVICE.get(scopeId, deviceId, null, null, null);
-
-            if (deviceConfigurations != null) {
-
-                // sort the list alphabetically by service name
-                List<DeviceComponentConfiguration> configs = deviceConfigurations.getComponentConfigurations();
-                Collections.sort(configs, new Comparator<DeviceComponentConfiguration>() {
-
-                    @Override
-                    public int compare(DeviceComponentConfiguration arg0, DeviceComponentConfiguration arg1) {
-                        String name0 = arg0.getId();
-                        String name1 = arg1.getId();
-
-                        if (name0.contains(".")) {
-                            name0 = name0.substring(name0.lastIndexOf('.'));
-                        }
-                        if (name1.contains(".")) {
-                            name1 = name1.substring(name1.lastIndexOf('.'));
-                        }
-
-                        return name0.compareTo(name1);
-                    }
-                });
-                // Prepare results
-                List<String> serviceIgnore = CONSOLE_SETTING.getList(String.class, ConsoleSettingKeys.DEVICE_CONFIGURATION_SERVICE_IGNORE);
-
-                for (DeviceComponentConfiguration config : deviceConfigurations.getComponentConfigurations()) {
-
-                    // ignore items we want to hide
-                    if (serviceIgnore != null && serviceIgnore.contains(config.getId())) {
-                        continue;
-                    }
-
-                    KapuaTocd ocd = config.getDefinition();
-                    if (ocd != null) {
-                        GwtConfigComponent gwtConfig = new GwtConfigComponent();
-                        gwtConfig.setId(config.getId());
-                        if (config.getProperties() != null && config.getProperties().get("service.factoryPid") != null) {
-                            String componentName = config.getId().substring(config.getId().lastIndexOf('.') + 1);
-                            gwtConfig.setName(componentName);
-                        } else if (config.getId().indexOf('.') == -1) {
-                            gwtConfig.setName(config.getId());
-                        } else {
-                            gwtConfig.setName(ocd.getName());
-                        }
-                        gwtConfig.setDescription(ocd.getDescription());
-                        if (ocd.getIcon() != null && !ocd.getIcon().isEmpty()) {
-                            KapuaTicon icon = ocd.getIcon().get(0);
-
-                            checkIconResource(icon);
-
-                            gwtConfig.setComponentIcon(icon.getResource());
-                        }
-
-                        List<GwtConfigParameter> gwtParams = new ArrayList<GwtConfigParameter>();
-                        gwtConfig.setParameters(gwtParams);
-                        for (KapuaTad ad : ocd.getAD()) {
-                            if (ad != null) {
-                                GwtConfigParameter gwtParam = new GwtConfigParameter();
-                                gwtParam.setId(ad.getId());
-                                gwtParam.setName(ad.getName());
-                                gwtParam.setDescription(ad.getDescription());
-                                gwtParam.setType(GwtConfigParameterType.fromString(ad.getType().value()));
-                                gwtParam.setRequired(ad.isRequired());
-                                gwtParam.setCardinality(ad.getCardinality());
-                                if (ad.getOption() != null && !ad.getOption().isEmpty()) {
-                                    Map<String, String> options = new HashMap<String, String>();
-                                    for (KapuaToption option : ad.getOption()) {
-                                        options.put(option.getLabel(), option.getValue());
-                                    }
-                                    gwtParam.setOptions(options);
-                                }
-                                gwtParam.setMin(ad.getMin());
-                                gwtParam.setMax(ad.getMax());
-                                Map<String, String> gwtEntries = new HashMap<String, String>();
-                                for (Entry<QName, String> entry : ad.getOtherAttributes().entrySet()) {
-                                    gwtEntries.put(entry.getKey().toString(), entry.getValue());
-                                }
-                                gwtParam.setOtherAttributes(gwtEntries);
-
-                                if (config.getProperties() != null) {
-
-                                    // handle the value based on the cardinality of the attribute
-                                    int cardinality = ad.getCardinality();
-                                    Object value = config.getProperties().get(ad.getId());
-                                    if (value != null) {
-
-                                        if (cardinality == 0 || cardinality == 1 || cardinality == -1) {
-                                            gwtParam.setValue(GwtConfigParameterType.PASSWORD.equals(gwtParam.getType()) ? PASSWORD_PLACEHOLDER : value.toString());
-                                        } else {
-                                            // this could be an array value
-                                            if (value instanceof Object[]) {
-                                                Object[] objValues = (Object[]) value;
-                                                List<String> strValues = new ArrayList<String>();
-                                                for (Object v : objValues) {
-                                                    if (v != null) {
-                                                        strValues.add(v.toString());
-                                                    }
-                                                }
-                                                gwtParam.setValues(strValues.toArray(new String[] {}));
-                                            }
-                                        }
-                                    }
-                                    gwtParams.add(gwtParam);
-                                }
-                            }
-                        }
-                        gwtConfigs.add(gwtConfig);
-                    }
-                }
-            }
+            gwtConfigs = convertDeviceConfigsToGwtConfigs(deviceConfigurations);
         } catch (Throwable t) {
             throw KapuaExceptionHandler.buildExceptionFromError(t);
         }
@@ -397,34 +292,7 @@ public class GwtDeviceManagementServiceImpl extends KapuaRemoteServiceServlet im
             throws GwtKapuaException {
         // Checking validity of the given XSRF Token
         checkXSRFToken(xsrfToken);
-        // Set name and properties
-        DeviceComponentConfiguration compConfig = DEVICE_CONFIGURATION_FACTORY.newComponentConfigurationInstance(gwtCompConfig.getUnescapedComponentId());
-        compConfig.setName(gwtCompConfig.getUnescapedComponentName());
-
-        Map<String, Object> compProps = new HashMap<String, Object>();
-        for (GwtConfigParameter gwtConfigParam : gwtCompConfig.getParameters()) {
-
-            Object objValue;
-            int cardinality = gwtConfigParam.getCardinality();
-            if (cardinality == 0 || cardinality == 1 || cardinality == -1) {
-
-                String strValue = gwtConfigParam.getValue();
-
-                if (GwtConfigParameterType.PASSWORD.equals(gwtConfigParam.getType()) && PASSWORD_PLACEHOLDER.equals(strValue)) {
-                    continue;
-                }
-
-                objValue = getObjectValue(gwtConfigParam, strValue);
-            } else {
-
-                String[] strValues = gwtConfigParam.getValues();
-                objValue = getObjectValue(gwtConfigParam, strValues);
-            }
-
-            compProps.put(gwtConfigParam.getId(), objValue);
-        }
-        compConfig.setProperties(compProps);
-
+        DeviceComponentConfiguration compConfig = convertGwtConfigsToDeviceConfigs(gwtCompConfig);
         // execute the update
         try {
             KapuaId scopeId = KapuaEid.parseCompactId(gwtDevice.getScopeId());
@@ -601,6 +469,64 @@ public class GwtDeviceManagementServiceImpl extends KapuaRemoteServiceServlet im
         } catch (Throwable t) {
             throw KapuaExceptionHandler.buildExceptionFromError(t);
         }
+    }
+
+    @Override
+    public void deleteWireGraphConfiguration(GwtXSRFToken xsrfToken, GwtDevice device)
+            throws GwtKapuaException {
+        // Checking validity of the given XSRF Token
+        checkXSRFToken(xsrfToken);
+
+        try {
+            KapuaId scopeId = KapuaEid.parseCompactId(device.getScopeId());
+            KapuaId deviceId = KapuaEid.parseCompactId(device.getId());
+
+            WIRE_MANAGEMENT_SERVICE.del(scopeId, deviceId, null);
+        } catch (Throwable t) {
+            throw KapuaExceptionHandler.buildExceptionFromError(t);
+        }
+    }
+
+    @Override
+    public void updateWireGraphConfiguration(GwtXSRFToken xsrfToken, GwtDevice device, List<GwtConfigComponent> wireGraphConfiguration)
+            throws GwtKapuaException {
+        // Checking validity of the given XSRF Token
+        checkXSRFToken(xsrfToken);
+        DeviceConfiguration wireConfig = DEVICE_CONFIGURATION_FACTORY.newConfigurationInstance();
+        for (GwtConfigComponent gwtConfigComponent : wireGraphConfiguration) {
+            wireConfig.getComponentConfigurations().add(convertGwtConfigsToDeviceConfigs(gwtConfigComponent));
+        }
+
+        try {
+            KapuaId scopeId = KapuaEid.parseCompactId(device.getScopeId());
+            KapuaId deviceId = KapuaEid.parseCompactId(device.getId());
+
+            WIRE_MANAGEMENT_SERVICE.put(scopeId, deviceId, wireConfig, null);
+            // Add an additional delay after the wire graph update
+            // to give the time to the device to apply the received
+            // configuration
+            Thread.sleep(1000);
+        } catch (Throwable t) {
+            throw KapuaExceptionHandler.buildExceptionFromError(t);
+        }
+    }
+
+    @Override
+    public List<GwtConfigComponent> getWireGraphConfiguration(GwtXSRFToken xsrfToken, GwtDevice device)
+            throws GwtKapuaException {
+        // Checking validity of the given XSRF Token
+        checkXSRFToken(xsrfToken);
+        DeviceConfiguration wireConfig;
+        try {
+            KapuaId scopeId = KapuaEid.parseCompactId(device.getScopeId());
+            KapuaId deviceId = KapuaEid.parseCompactId(device.getId());
+
+            wireConfig = WIRE_MANAGEMENT_SERVICE.get(scopeId, deviceId, null);
+        } catch (Throwable t) {
+            throw KapuaExceptionHandler.buildExceptionFromError(t);
+        }
+
+        return convertDeviceConfigsToGwtConfigs(wireConfig);
     }
 
     // Command
@@ -929,6 +855,155 @@ public class GwtDeviceManagementServiceImpl extends KapuaRemoteServiceServlet im
             }
         }
         // If not, all is fine.
+    }
+
+    private List<GwtConfigComponent> convertDeviceConfigsToGwtConfigs(DeviceConfiguration deviceConfigurations) throws GwtKapuaException {
+        List<GwtConfigComponent> gwtConfigs = new ArrayList<GwtConfigComponent>();
+        try {
+            if (deviceConfigurations != null) {
+                // sort the list alphabetically by service name
+                List<DeviceComponentConfiguration> configs = deviceConfigurations.getComponentConfigurations();
+                Collections.sort(configs, new Comparator<DeviceComponentConfiguration>() {
+
+                    @Override
+                    public int compare(DeviceComponentConfiguration arg0, DeviceComponentConfiguration arg1) {
+                        String name0 = arg0.getId();
+                        String name1 = arg1.getId();
+
+                        if (name0.contains(".")) {
+                            name0 = name0.substring(name0.lastIndexOf('.'));
+                        }
+                        if (name1.contains(".")) {
+                            name1 = name1.substring(name1.lastIndexOf('.'));
+                        }
+
+                        return name0.compareTo(name1);
+                    }
+                });
+                // Prepare results
+                List<String> serviceIgnore = CONSOLE_SETTING.getList(String.class, ConsoleSettingKeys.DEVICE_CONFIGURATION_SERVICE_IGNORE);
+
+                for (DeviceComponentConfiguration config : deviceConfigurations.getComponentConfigurations()) {
+
+                    // ignore items we want to hide
+                    if (serviceIgnore != null && serviceIgnore.contains(config.getId())) {
+                        continue;
+                    }
+
+                    KapuaTocd ocd = config.getDefinition();
+                    if (ocd != null) {
+                        GwtConfigComponent gwtConfig = new GwtConfigComponent();
+                        gwtConfig.setId(config.getId());
+                        if (config.getProperties() != null && config.getProperties().get("service.factoryPid") != null) {
+                            String componentName = config.getId().substring(config.getId().lastIndexOf('.') + 1);
+                            gwtConfig.setName(componentName);
+                        } else if (config.getId().indexOf('.') == -1) {
+                            gwtConfig.setName(config.getId());
+                        } else {
+                            gwtConfig.setName(ocd.getName());
+                        }
+                        gwtConfig.setDescription(ocd.getDescription());
+                        if (ocd.getIcon() != null && !ocd.getIcon().isEmpty()) {
+                            KapuaTicon icon = ocd.getIcon().get(0);
+
+                            checkIconResource(icon);
+
+                            gwtConfig.setComponentIcon(icon.getResource());
+                        }
+
+                        List<GwtConfigParameter> gwtParams = new ArrayList<GwtConfigParameter>();
+                        gwtConfig.setParameters(gwtParams);
+                        for (KapuaTad ad : ocd.getAD()) {
+                            if (ad != null) {
+                                GwtConfigParameter gwtParam = new GwtConfigParameter();
+                                gwtParam.setId(ad.getId());
+                                gwtParam.setName(ad.getName());
+                                gwtParam.setDescription(ad.getDescription());
+                                gwtParam.setType(GwtConfigParameterType.fromString(ad.getType().value()));
+                                gwtParam.setRequired(ad.isRequired());
+                                gwtParam.setCardinality(ad.getCardinality());
+                                if (ad.getOption() != null && !ad.getOption().isEmpty()) {
+                                    Map<String, String> options = new HashMap<String, String>();
+                                    for (KapuaToption option : ad.getOption()) {
+                                        options.put(option.getLabel(), option.getValue());
+                                    }
+                                    gwtParam.setOptions(options);
+                                }
+                                gwtParam.setMin(ad.getMin());
+                                gwtParam.setMax(ad.getMax());
+                                Map<String, String> gwtEntries = new HashMap<String, String>();
+                                for (Entry<QName, String> entry : ad.getOtherAttributes().entrySet()) {
+                                    gwtEntries.put(entry.getKey().toString(), entry.getValue());
+                                }
+                                gwtParam.setOtherAttributes(gwtEntries);
+
+                                if (config.getProperties() != null) {
+
+                                    // handle the value based on the cardinality of the attribute
+                                    int cardinality = ad.getCardinality();
+                                    Object value = config.getProperties().get(ad.getId());
+                                    if (value != null) {
+
+                                        if (cardinality == 0 || cardinality == 1 || cardinality == -1) {
+                                            gwtParam.setValue(GwtConfigParameterType.PASSWORD.equals(gwtParam.getType()) ? PASSWORD_PLACEHOLDER : value.toString());
+                                        } else {
+                                            // this could be an array value
+                                            if (value instanceof Object[]) {
+                                                Object[] objValues = (Object[]) value;
+                                                List<String> strValues = new ArrayList<String>();
+                                                for (Object v : objValues) {
+                                                    if (v != null) {
+                                                        strValues.add(v.toString());
+                                                    }
+                                                }
+                                                gwtParam.setValues(strValues.toArray(new String[]{}));
+                                            }
+                                        }
+                                    }
+                                    gwtParams.add(gwtParam);
+                                }
+                            }
+                        }
+                        gwtConfigs.add(gwtConfig);
+                    }
+                }
+            }
+        } catch (Throwable t) {
+            throw KapuaExceptionHandler.buildExceptionFromError(t);
+        }
+        return gwtConfigs;
+    }
+
+    private DeviceComponentConfiguration convertGwtConfigsToDeviceConfigs(GwtConfigComponent gwtCompConfig) {
+        // Set name and properties
+        DeviceComponentConfiguration compConfig = DEVICE_CONFIGURATION_FACTORY.newComponentConfigurationInstance(gwtCompConfig.getUnescapedComponentId());
+        compConfig.setName(gwtCompConfig.getUnescapedComponentName());
+
+        Map<String, Object> compProps = new HashMap<String, Object>();
+        for (GwtConfigParameter gwtConfigParam : gwtCompConfig.getParameters()) {
+
+            Object objValue;
+            int cardinality = gwtConfigParam.getCardinality();
+            if (cardinality == 0 || cardinality == 1 || cardinality == -1) {
+
+                String strValue = gwtConfigParam.getValue();
+
+                if (GwtConfigParameterType.PASSWORD.equals(gwtConfigParam.getType()) && PASSWORD_PLACEHOLDER.equals(strValue)) {
+                    continue;
+                }
+
+                objValue = getObjectValue(gwtConfigParam, strValue);
+            } else {
+
+                String[] strValues = gwtConfigParam.getValues();
+                objValue = getObjectValue(gwtConfigParam, strValues);
+            }
+
+            compProps.put(gwtConfigParam.getId(), objValue);
+        }
+        compConfig.setProperties(compProps);
+
+        return compConfig;
     }
 
 }
