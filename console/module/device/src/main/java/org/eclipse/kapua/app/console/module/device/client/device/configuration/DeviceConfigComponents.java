@@ -42,8 +42,10 @@ import com.extjs.gxt.ui.client.widget.treepanel.TreePanel;
 import com.extjs.gxt.ui.client.widget.treepanel.TreePanelSelectionModel;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.dom.client.StyleInjector;
+import com.google.gwt.http.client.URL;
 import com.google.gwt.user.client.Element;
 import com.google.gwt.user.client.Timer;
+import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import org.eclipse.kapua.app.console.module.api.client.GwtKapuaErrorCode;
 import org.eclipse.kapua.app.console.module.api.client.GwtKapuaException;
@@ -69,6 +71,7 @@ import org.eclipse.kapua.app.console.module.api.shared.service.GwtSecurityTokenS
 import org.eclipse.kapua.app.console.module.api.shared.service.GwtSecurityTokenServiceAsync;
 import org.eclipse.kapua.app.console.module.device.client.device.configuration.settings.DeviceConfigurationsStoreSettingsDialog;
 import org.eclipse.kapua.app.console.module.device.client.device.wires.WireGraphDeleteButton;
+import org.eclipse.kapua.app.console.module.device.client.device.wires.WireGraphDownloadButton;
 import org.eclipse.kapua.app.console.module.device.client.messages.ConsoleDeviceMessages;
 import org.eclipse.kapua.app.console.module.device.shared.model.GwtDevice;
 import org.eclipse.kapua.app.console.module.device.shared.service.GwtDeviceManagementService;
@@ -104,6 +107,7 @@ public class DeviceConfigComponents extends LayoutContainer {
     private Button settings;
 
     private Button deleteWireGraphButton;
+    private Button downloadWireGraphButton;
 
     private ContentPanel configPanel;
     private DeviceConfigPanel devConfPanel;
@@ -114,8 +118,8 @@ public class DeviceConfigComponents extends LayoutContainer {
     private TreePanel<ModelData> tree;
 
     protected boolean resetProcess;
-
     protected boolean applyProcess;
+    protected boolean downloadProcess;
 
     private GwtSession gwtSession;
 
@@ -414,8 +418,39 @@ public class DeviceConfigComponents extends LayoutContainer {
                             });
                 }
             });
+
+            downloadWireGraphButton = new WireGraphDownloadButton(new SelectionListener<ButtonEvent>() {
+                @Override
+                public void componentSelected(ButtonEvent buttonEvent) {
+                    if (!downloadProcess) {
+                        downloadProcess = true;
+                        downloadWireGraphButton.setEnabled(false);
+
+                        downloadWireGraph();
+
+                        downloadWireGraphButton.setEnabled(true);
+                        downloadProcess = false;
+                    }
+                }
+            });
+
+            toolBar.add(new SeparatorToolItem());
+            toolBar.add(downloadWireGraphButton);
             toolBar.add(new SeparatorToolItem());
             toolBar.add(deleteWireGraphButton);
+        }
+    }
+
+    private void downloadWireGraph() {
+        if (selectedDevice != null) {
+
+            StringBuilder sbUrl = new StringBuilder();
+            sbUrl.append("device_wiregraph?");
+            sbUrl.append("&scopeId=")
+                    .append(URL.encodeQueryString(selectedDevice.getScopeId()))
+                    .append("&deviceId=")
+                    .append(URL.encodeQueryString(selectedDevice.getId()));
+            Window.open(sbUrl.toString(), "_blank", "location=no");
         }
     }
 
