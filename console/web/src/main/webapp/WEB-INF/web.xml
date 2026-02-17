@@ -59,6 +59,7 @@
         <url-pattern>/deviceConnection/*</url-pattern>
         <url-pattern>/deviceConnectionOption/*</url-pattern>
         <url-pattern>/device_snapshots/*</url-pattern>
+        <url-pattern>/device_wiregraph/*</url-pattern>
         <url-pattern>/endpoint/*</url-pattern>
         <url-pattern>/user/*</url-pattern>
         <url-pattern>/userGroup/*</url-pattern>
@@ -175,6 +176,15 @@
     <servlet-mapping>
         <servlet-name>deviceSnapshotsServlet</servlet-name>
         <url-pattern>/device_snapshots/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>DeviceWireGraphServlet</servlet-name>
+        <servlet-class>org.eclipse.kapua.app.console.module.device.servlet.DeviceWireGraphServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>DeviceWireGraphServlet</servlet-name>
+        <url-pattern>/device_wiregraph/*</url-pattern>
     </servlet-mapping>
 
     <servlet>
