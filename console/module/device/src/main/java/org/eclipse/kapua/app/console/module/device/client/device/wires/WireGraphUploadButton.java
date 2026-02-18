@@ -18,12 +18,12 @@ import org.eclipse.kapua.app.console.module.api.client.resources.icons.IconSet;
 import org.eclipse.kapua.app.console.module.api.client.resources.icons.KapuaIcon;
 import org.eclipse.kapua.app.console.module.api.client.ui.button.KapuaButton;
 
-public class WireGraphDeleteButton extends KapuaButton {
+public class WireGraphUploadButton extends KapuaButton {
 
-    public WireGraphDeleteButton(SelectionListener<ButtonEvent> listener) {
-        super("Delete Wire Graph Snapshot",
-                new KapuaIcon(IconSet.TRASH),
+    public WireGraphUploadButton(SelectionListener<ButtonEvent> listener) {
+        super("Upload/Apply Wire Graph Snapshot",
+                new KapuaIcon(IconSet.CLOUD_UPLOAD),
                 listener);
     }
-
 }
+

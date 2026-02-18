@@ -59,6 +59,7 @@ public class TextFieldValidator implements Validator {
         SIMPLE_NAME("simple_name", "^[a-zA-Z0-9\\-]{3,}$"),
         DEVICE_CLIENT_ID("device_client_id", "^((?!#|\\+|\\*|&|,|\\?|>|\\/|\\:\\:).)*$"),
         SNAPSHOT_FILE("snapshot_file", "^([a-zA-Z0-9\\:\\_\\-\\\\]){1,255}(\\.xml)"),
+        SNAPSHOT_FILE_JSON("snapshot_file_json", "^([a-zA-Z0-9\\:\\_\\-\\\\]){1,255}(\\.json)"),
         NAME("name", "^[a-zA-Z0-9\\_\\-]{3,}$"),
         /**
          * @deprecated Since 6.1.0. Use {@link #EXTENDED_NAME}

@@ -16,6 +16,7 @@ import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.CharEncoding;
 import org.eclipse.kapua.KapuaEntityNotFoundException;
+import org.eclipse.kapua.KapuaException;
 import org.eclipse.kapua.KapuaIllegalAccessException;
 import org.eclipse.kapua.KapuaIllegalArgumentException;
 import org.eclipse.kapua.KapuaUnauthenticatedException;
@@ -32,6 +33,7 @@ import org.eclipse.kapua.service.device.management.command.DeviceCommandManageme
 import org.eclipse.kapua.service.device.management.command.DeviceCommandOutput;
 import org.eclipse.kapua.service.device.management.configuration.DeviceConfigurationManagementService;
 import org.eclipse.kapua.service.device.management.exception.DeviceManagementException;
+import org.eclipse.kapua.service.device.management.wire.DeviceWiresManagementService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,6 +56,7 @@ public class FileServlet extends KapuaHttpServlet {
     private static final String DEVICE_ID_STRING = "deviceIdString";
 
     private final DeviceConfigurationManagementService deviceConfigurationManagementService;
+    private final DeviceWiresManagementService deviceWiresManagementService;
     private final DeviceCommandManagementService deviceCommandManagementService;
     private final DeviceCommandFactory deviceCommandFactory;
     private final ConsoleSetting config;
@@ -62,9 +65,15 @@ public class FileServlet extends KapuaHttpServlet {
         //Injection not supported here, unfortunately
         KapuaLocator locator = KapuaLocator.getInstance();
         deviceConfigurationManagementService = locator.getService(DeviceConfigurationManagementService.class);
+        deviceWiresManagementService = locator.getService(DeviceWiresManagementService.class);
         deviceCommandManagementService = locator.getService(DeviceCommandManagementService.class);
         deviceCommandFactory = locator.getFactory(DeviceCommandFactory.class);
         config = ConsoleSetting.getInstance();
+    }
+
+    private enum ConfigType {
+        SNAPSHOT,
+        WIRE_CONFIG
     }
 
     @Override
@@ -92,13 +101,32 @@ public class FileServlet extends KapuaHttpServlet {
         if (reqPathInfo.equals("/command")) {
             doPostCommand(kapuaFormFields, resp);
         } else if (reqPathInfo.equals("/configuration/snapshot")) {
-            doPostConfigurationSnapshot(kapuaFormFields, resp);
+            doPostConfiguration(kapuaFormFields, resp, ConfigType.SNAPSHOT);
+        } else if (reqPathInfo.equals("/configuration/wiregraph")) {
+            doPostConfiguration(kapuaFormFields, resp, ConfigType.WIRE_CONFIG);
         } else {
             resp.sendError(404);
         }
     }
 
-    private void doPostConfigurationSnapshot(KapuaFormFields kapuaFormFields, HttpServletResponse resp)
+    private void doPostConfigurationSnapshot(String scopeId, String deviceId, String configuration)
+            throws KapuaException {
+        deviceConfigurationManagementService.put(KapuaEid.parseCompactId(scopeId),
+                KapuaEid.parseCompactId(deviceId),
+                configuration,
+                null);
+    }
+
+    private void doPostConfigurationWireGraph(String scopeId, String deviceId, String configuration)
+            throws KapuaException {
+        deviceWiresManagementService.put(
+                KapuaEid.parseCompactId(scopeId),
+                KapuaEid.parseCompactId(deviceId),
+                configuration,
+                null);
+    }
+
+    private void doPostConfiguration(KapuaFormFields kapuaFormFields, HttpServletResponse resp, ConfigType configType)
             throws IOException {
         try {
             List<FileItem> fileItems = kapuaFormFields.getFileItems();
@@ -114,17 +142,20 @@ public class FileServlet extends KapuaHttpServlet {
             }
 
             if (fileItems == null || fileItems.size() != 1) {
-                throw new IllegalArgumentException("configuration");
+                throw new IllegalArgumentException("wire graph configuration");
             }
 
             FileItem fileItem = fileItems.get(0);
             byte[] data = fileItem.get();
-            String xmlConfigurationString = new String(data, CharEncoding.UTF_8);
+            String configurationString = new String(data, CharEncoding.UTF_8);
 
-            deviceConfigurationManagementService.put(KapuaEid.parseCompactId(scopeIdString),
-                    KapuaEid.parseCompactId(deviceIdString),
-                    xmlConfigurationString,
-                    null);
+            if (configType == ConfigType.SNAPSHOT) {
+                doPostConfigurationSnapshot(scopeIdString, deviceIdString, configurationString);
+            } else if (configType == ConfigType.WIRE_CONFIG) {
+                doPostConfigurationWireGraph(scopeIdString, deviceIdString, configurationString);
+            } else {
+                throw new IllegalArgumentException("Unknown configuration type: " + configType);
+            }
 
         } catch (IllegalArgumentException iae) {
             resp.sendError(400, "Illegal value for query parameter: " + iae.getMessage());
@@ -144,6 +175,7 @@ public class FileServlet extends KapuaHttpServlet {
             logger.error("Generic error: {}", e.getMessage(), e);
             resp.sendError(500, e.getMessage());
         }
+
     }
 
     private void doPostCommand(KapuaFormFields kapuaFormFields, HttpServletResponse resp)
