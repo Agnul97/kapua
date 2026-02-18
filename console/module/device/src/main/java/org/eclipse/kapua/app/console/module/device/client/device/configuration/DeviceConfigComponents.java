@@ -408,6 +408,8 @@ public class DeviceConfigComponents extends LayoutContainer {
 
     private void initWireGraphButtonsIfSupported() {
         if (selectedDevice.hasApplication(GwtDevice.GwtDeviceApplication.APP_WIRE_V1)) {
+
+            //DELETE wire graph button
             deleteWireGraphButton = new WireGraphDeleteButton(new SelectionListener<ButtonEvent>() {
                 @Override
                 public void componentSelected(ButtonEvent buttonEvent) {
@@ -420,41 +422,41 @@ public class DeviceConfigComponents extends LayoutContainer {
                                 public void handleEvent(MessageBoxEvent ce) {
                                     Dialog dialog = ce.getDialog();
                                     if (dialog.yesText.equals(ce.getButtonClicked().getText())) {
-                                        doDeleteWire();
+                                        doDeleteWire(null);
                                     }
                                 }
                             });
                 }
             });
 
+            //DOWNLOAD wire graph button
             downloadWireGraphButton = new WireGraphDownloadButton(new SelectionListener<ButtonEvent>() {
                 @Override
                 public void componentSelected(ButtonEvent buttonEvent) {
-                    if (!downloadProcess) {
-                        downloadProcess = true;
-                        downloadWireGraphButton.setEnabled(false);
-
-                        downloadWireGraph();
-
-                        downloadWireGraphButton.setEnabled(true);
-                        downloadProcess = false;
-                    }
+                    doDownloadWire();
                 }
             });
 
+            //UPLOAD wire graph button - with a prompt before deletion to recommend the user to delete the current wire graph before uploading a new one, to avoid potential conflicts between the two graphs.
             uploadWireGraphButton = new WireGraphUploadButton(new SelectionListener<ButtonEvent>() {
 
                 @Override
                 public void componentSelected(ButtonEvent ce) {
-                    if (!uploadProcess) {
-                        uploadProcess = true;
-                        uploadWireGraphButton.setEnabled(false);
+                    KapuaMessageBox.confirm(
+                            MSGS.confirm(),
+                            "Do you want to also delete the current wire graph before the upload (recommended)?",
+                            new Listener<MessageBoxEvent>() {
 
-                        uploadWireGraph();
-
-                        uploadWireGraphButton.setEnabled(true);
-                        uploadProcess = false;
-                    }
+                                @Override
+                                public void handleEvent(MessageBoxEvent ce) {
+                                    Dialog dialog = ce.getDialog();
+                                    if (dialog.yesText.equals(ce.getButtonClicked().getText())) {
+                                        doDeleteWire(uploadWireOnSuccess()); //Perform deletion before
+                                    } else {
+                                        doUploadWire(); //Don't perform deletion before
+                                    }
+                                }
+                            });
                 }
             });
 
@@ -464,55 +466,6 @@ public class DeviceConfigComponents extends LayoutContainer {
             toolBar.add(uploadWireGraphButton);
             toolBar.add(new SeparatorToolItem());
             toolBar.add(deleteWireGraphButton);
-        }
-    }
-
-    private void downloadWireGraph() {
-        if (selectedDevice != null) {
-
-            StringBuilder sbUrl = new StringBuilder();
-            sbUrl.append("device_wiregraph?");
-            sbUrl.append("&scopeId=")
-                    .append(URL.encodeQueryString(selectedDevice.getScopeId()))
-                    .append("&deviceId=")
-                    .append(URL.encodeQueryString(selectedDevice.getId()));
-            Window.open(sbUrl.toString(), "_blank", "location=no");
-        }
-    }
-
-    private void uploadWireGraph() {
-        if (selectedDevice != null) {
-            HiddenField<String> accountField = new HiddenField<String>();
-            accountField.setName("scopeIdString");
-            accountField.setValue(selectedDevice.getScopeId());
-
-            HiddenField<String> clientIdField = new HiddenField<String>();
-            clientIdField.setName("deviceIdString");
-            clientIdField.setValue(selectedDevice.getId());
-
-            List<HiddenField<?>> hiddenFields = new ArrayList<HiddenField<?>>();
-            hiddenFields.add(accountField);
-            hiddenFields.add(clientIdField);
-
-            fileUpload = new FileUploadDialog(SERVLET_URL, hiddenFields, true);
-            fileUpload.addListener(Events.Hide, new Listener<BaseEvent>() {
-
-                @Override
-                public void handleEvent(BaseEvent be) {
-                    dirty = true;
-                    refresh();
-                }
-            });
-
-            fileUpload.setHeading(MSGS.upload());
-            fileUpload.addListener(Events.Render, new Listener<BaseEvent>() {
-
-                @Override
-                public void handleEvent(BaseEvent be) {
-                    fileUpload.getFileUploadField().setToolTip(DEVICE_MSGS.deviceSnapshotFileTooltip());
-                }
-            });
-            fileUpload.show();
         }
     }
     // --------------------------------------------------------------------------------------
@@ -684,7 +637,7 @@ public class DeviceConfigComponents extends LayoutContainer {
                 });
     }
 
-    public void doDeleteWire() {
+    public void doDeleteWire(final AsyncCallback<Void> operationToPerformAfterDelete) {
         configPanel.mask(MSGS.loading());
         gwtXSRFService.generateSecurityToken(new AsyncCallback<GwtXSRFToken>() {
 
@@ -702,19 +655,105 @@ public class DeviceConfigComponents extends LayoutContainer {
                         new AsyncCallback<Void>() {
                             @Override
                             public void onFailure(Throwable t) {
+                                if (operationToPerformAfterDelete != null) {
+                                    operationToPerformAfterDelete.onFailure(t);
+                                }
                                 FailureHandler.handle(t);
                                 configPanel.unmask();
                             }
 
                             @Override
                             public void onSuccess(Void result) {
-                                dirty = true;
-                                refresh();
+                                if (operationToPerformAfterDelete != null) {
+                                    operationToPerformAfterDelete.onSuccess(result);
+                                } else {
+                                    dirty = true;
+                                    refresh();
+                                }
                             }
                         });
             }
         });
     }
+
+    private void doDownloadWire() {
+        if (!downloadProcess) {
+            downloadProcess = true;
+            downloadWireGraphButton.setEnabled(false);
+
+            if (selectedDevice != null) {
+                StringBuilder sbUrl = new StringBuilder();
+                sbUrl.append("device_wiregraph?");
+                sbUrl.append("&scopeId=")
+                        .append(URL.encodeQueryString(selectedDevice.getScopeId()))
+                        .append("&deviceId=")
+                        .append(URL.encodeQueryString(selectedDevice.getId()));
+                Window.open(sbUrl.toString(), "_blank", "location=no");
+            }
+
+            downloadWireGraphButton.setEnabled(true);
+            downloadProcess = false;
+        }
+    }
+
+    private void doUploadWire() {
+        if (!uploadProcess) {
+            uploadProcess = true;
+            uploadWireGraphButton.setEnabled(false);
+
+            if (selectedDevice != null) {
+                HiddenField<String> accountField = new HiddenField<String>();
+                accountField.setName("scopeIdString");
+                accountField.setValue(selectedDevice.getScopeId());
+
+                HiddenField<String> clientIdField = new HiddenField<String>();
+                clientIdField.setName("deviceIdString");
+                clientIdField.setValue(selectedDevice.getId());
+
+                List<HiddenField<?>> hiddenFields = new ArrayList<HiddenField<?>>();
+                hiddenFields.add(accountField);
+                hiddenFields.add(clientIdField);
+
+                fileUpload = new FileUploadDialog(SERVLET_URL, hiddenFields, true);
+                fileUpload.addListener(Events.Hide, new Listener<BaseEvent>() {
+
+                    @Override
+                    public void handleEvent(BaseEvent be) {
+                        dirty = true;
+                        refresh();
+                    }
+                });
+
+                fileUpload.setHeading(MSGS.upload());
+                fileUpload.addListener(Events.Render, new Listener<BaseEvent>() {
+
+                    @Override
+                    public void handleEvent(BaseEvent be) {
+                        fileUpload.getFileUploadField().setToolTip(DEVICE_MSGS.deviceSnapshotFileTooltip());
+                    }
+                });
+                fileUpload.show();
+            }
+
+            uploadWireGraphButton.setEnabled(true);
+            uploadProcess = false;
+        }
+    }
+
+    private AsyncCallback<Void> uploadWireOnSuccess() {
+        return new AsyncCallback<Void>() {
+            @Override
+            public void onFailure(Throwable caught) {
+                // Do nothing if previous operation fails (that op. will handle failure)
+            }
+
+            @Override
+            public void onSuccess(Void result) {
+                doUploadWire();
+            }
+        };
+    }
+
 
     public void reset() {
         final GwtConfigComponent comp = (GwtConfigComponent) tree.getSelectionModel().getSelectedItem();
