@@ -33,6 +33,7 @@ import com.extjs.gxt.ui.client.widget.Dialog;
 import com.extjs.gxt.ui.client.widget.LayoutContainer;
 import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.extjs.gxt.ui.client.widget.button.Button;
+import com.extjs.gxt.ui.client.widget.form.HiddenField;
 import com.extjs.gxt.ui.client.widget.layout.BorderLayout;
 import com.extjs.gxt.ui.client.widget.layout.BorderLayoutData;
 import com.extjs.gxt.ui.client.widget.layout.FitLayout;
@@ -56,6 +57,7 @@ import org.eclipse.kapua.app.console.module.api.client.ui.button.DiscardButton;
 import org.eclipse.kapua.app.console.module.api.client.ui.button.KapuaButton;
 import org.eclipse.kapua.app.console.module.api.client.ui.button.RefreshButton;
 import org.eclipse.kapua.app.console.module.api.client.ui.button.SaveButton;
+import org.eclipse.kapua.app.console.module.api.client.ui.dialog.FileUploadDialog;
 import org.eclipse.kapua.app.console.module.api.client.ui.dialog.InfoDialog;
 import org.eclipse.kapua.app.console.module.api.client.ui.dialog.InfoDialog.InfoDialogType;
 import org.eclipse.kapua.app.console.module.api.client.ui.dialog.KapuaMessageBox;
@@ -72,6 +74,7 @@ import org.eclipse.kapua.app.console.module.api.shared.service.GwtSecurityTokenS
 import org.eclipse.kapua.app.console.module.device.client.device.configuration.settings.DeviceConfigurationsStoreSettingsDialog;
 import org.eclipse.kapua.app.console.module.device.client.device.wires.WireGraphDeleteButton;
 import org.eclipse.kapua.app.console.module.device.client.device.wires.WireGraphDownloadButton;
+import org.eclipse.kapua.app.console.module.device.client.device.wires.WireGraphUploadButton;
 import org.eclipse.kapua.app.console.module.device.client.messages.ConsoleDeviceMessages;
 import org.eclipse.kapua.app.console.module.device.shared.model.GwtDevice;
 import org.eclipse.kapua.app.console.module.device.shared.service.GwtDeviceManagementService;
@@ -91,6 +94,8 @@ public class DeviceConfigComponents extends LayoutContainer {
     private final GwtDeviceManagementServiceAsync gwtDeviceManagementService = GWT.create(GwtDeviceManagementService.class);
     private final GwtSecurityTokenServiceAsync gwtXSRFService = GWT.create(GwtSecurityTokenService.class);
 
+    private static final String SERVLET_URL = "file/configuration/wiregraph";
+
     private boolean dirty;
     private boolean initialized;
     private GwtDevice selectedDevice;
@@ -108,6 +113,7 @@ public class DeviceConfigComponents extends LayoutContainer {
 
     private Button deleteWireGraphButton;
     private Button downloadWireGraphButton;
+    private Button uploadWireGraphButton;
 
     private ContentPanel configPanel;
     private DeviceConfigPanel devConfPanel;
@@ -116,10 +122,12 @@ public class DeviceConfigComponents extends LayoutContainer {
     private BaseTreeLoader loader;
     private TreeStore<ModelData> treeStore;
     private TreePanel<ModelData> tree;
+    private FileUploadDialog fileUpload;
 
     protected boolean resetProcess;
     protected boolean applyProcess;
     protected boolean downloadProcess;
+    protected boolean uploadProcess;
 
     private GwtSession gwtSession;
 
@@ -434,8 +442,26 @@ public class DeviceConfigComponents extends LayoutContainer {
                 }
             });
 
+            uploadWireGraphButton = new WireGraphUploadButton(new SelectionListener<ButtonEvent>() {
+
+                @Override
+                public void componentSelected(ButtonEvent ce) {
+                    if (!uploadProcess) {
+                        uploadProcess = true;
+                        uploadWireGraphButton.setEnabled(false);
+
+                        uploadWireGraph();
+
+                        uploadWireGraphButton.setEnabled(true);
+                        uploadProcess = false;
+                    }
+                }
+            });
+
             toolBar.add(new SeparatorToolItem());
             toolBar.add(downloadWireGraphButton);
+            toolBar.add(new SeparatorToolItem());
+            toolBar.add(uploadWireGraphButton);
             toolBar.add(new SeparatorToolItem());
             toolBar.add(deleteWireGraphButton);
         }
@@ -454,6 +480,41 @@ public class DeviceConfigComponents extends LayoutContainer {
         }
     }
 
+    private void uploadWireGraph() {
+        if (selectedDevice != null) {
+            HiddenField<String> accountField = new HiddenField<String>();
+            accountField.setName("scopeIdString");
+            accountField.setValue(selectedDevice.getScopeId());
+
+            HiddenField<String> clientIdField = new HiddenField<String>();
+            clientIdField.setName("deviceIdString");
+            clientIdField.setValue(selectedDevice.getId());
+
+            List<HiddenField<?>> hiddenFields = new ArrayList<HiddenField<?>>();
+            hiddenFields.add(accountField);
+            hiddenFields.add(clientIdField);
+
+            fileUpload = new FileUploadDialog(SERVLET_URL, hiddenFields, true);
+            fileUpload.addListener(Events.Hide, new Listener<BaseEvent>() {
+
+                @Override
+                public void handleEvent(BaseEvent be) {
+                    dirty = true;
+                    refresh();
+                }
+            });
+
+            fileUpload.setHeading(MSGS.upload());
+            fileUpload.addListener(Events.Render, new Listener<BaseEvent>() {
+
+                @Override
+                public void handleEvent(BaseEvent be) {
+                    fileUpload.getFileUploadField().setToolTip(DEVICE_MSGS.deviceSnapshotFileTooltip());
+                }
+            });
+            fileUpload.show();
+        }
+    }
     // --------------------------------------------------------------------------------------
     // Device Configuration Management
     // --------------------------------------------------------------------------------------

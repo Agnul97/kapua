@@ -62,13 +62,20 @@ public class FileUploadDialog extends Dialog {
     private Button cancelButton;
     private Status status;
     private String url;
+    private boolean isJsonUpload; //True if the upload file is expected to be in json format, false for xml format.
 
     public FileUploadDialog(String url, List<HiddenField<?>> hiddenFields) {
         super();
         this.url = url;
         this.hiddenFields = hiddenFields;
+        this.isJsonUpload = false;
         setButtonAlign(HorizontalAlignment.RIGHT);
         setClosable(false);
+    }
+
+    public FileUploadDialog(String url, List<HiddenField<?>> hiddenFields, boolean isJsonUpload) {
+        this(url, hiddenFields);
+        this.isJsonUpload = isJsonUpload;
     }
 
     @Override
@@ -124,8 +131,13 @@ public class FileUploadDialog extends Dialog {
         fieldSet.setLayout(layout);
 
         fileUploadField = new FileUploadField();
-        fileUploadField.setAccept("application/xml");
-        fileUploadField.setValidator(new TextFieldValidator(fileUploadField, FieldType.SNAPSHOT_FILE));
+        if (isJsonUpload) {
+            fileUploadField.setAccept("application/json");
+            fileUploadField.setValidator(new TextFieldValidator(fileUploadField, FieldType.SNAPSHOT_FILE_JSON));
+        } else {
+            fileUploadField.setAccept("application/xml");
+            fileUploadField.setValidator(new TextFieldValidator(fileUploadField, FieldType.SNAPSHOT_FILE));
+        }
         fileUploadField.setAllowBlank(false);
         fileUploadField.setName("uploadedFile");
         fileUploadField.setFieldLabel("File");
