@@ -45,6 +45,17 @@ public interface DeviceWiresManagementService extends DeviceManagementService {
     void put(KapuaId scopeId, KapuaId deviceId, DeviceConfiguration wireGraphConfig, Long timeout) throws KapuaException;
 
     /**
+     * The put operation but with a String as input instead of a DeviceConfiguration object. The String is expected to be a JSON marshalled Wire Graph configuration
+     *
+     * @param scopeId
+     * @param deviceId
+     * @param jsonWireGraphConfig
+     * @param timeout      timeout waiting for the device response
+     * @throws KapuaException
+     */
+    void put(KapuaId scopeId, KapuaId deviceId, String jsonWireGraphConfig, Long timeout) throws KapuaException;
+
+    /**
      * Deletes the current Wire Graph configuration to the device identified by the provided device identifier
      *
      * @param scopeId

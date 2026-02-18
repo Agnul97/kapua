@@ -13,8 +13,10 @@
 package org.eclipse.kapua.service.device.management.wire.internal;
 
 import org.eclipse.kapua.KapuaException;
+import org.eclipse.kapua.KapuaIllegalArgumentException;
 import org.eclipse.kapua.commons.model.domains.Domains;
 import org.eclipse.kapua.commons.util.ArgumentValidator;
+import org.eclipse.kapua.commons.util.xml.XmlUtil;
 import org.eclipse.kapua.model.domain.Actions;
 import org.eclipse.kapua.model.id.KapuaId;
 import org.eclipse.kapua.service.authorization.AuthorizationService;
@@ -23,6 +25,7 @@ import org.eclipse.kapua.service.device.management.commons.AbstractDeviceManagem
 import org.eclipse.kapua.service.device.management.commons.call.DeviceCallBuilder;
 import org.eclipse.kapua.service.device.management.configuration.DeviceConfiguration;
 import org.eclipse.kapua.service.device.management.configuration.DeviceConfigurationFactory;
+import org.eclipse.kapua.service.device.management.configuration.internal.DeviceConfigurationImpl;
 import org.eclipse.kapua.service.device.management.configuration.message.internal.ConfigurationRequestChannel;
 import org.eclipse.kapua.service.device.management.configuration.message.internal.ConfigurationRequestMessage;
 import org.eclipse.kapua.service.device.management.configuration.message.internal.ConfigurationRequestPayload;
@@ -36,8 +39,10 @@ import org.eclipse.kapua.storage.TxManager;
 import org.eclipse.kapua.service.device.management.wire.DeviceWiresManagementService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xml.sax.SAXException;
 
 import javax.inject.Singleton;
+import javax.xml.bind.JAXBException;
 import java.util.Date;
 
 /**
@@ -50,6 +55,7 @@ public class DeviceWiresManagementServiceImpl extends AbstractDeviceManagementTr
 
     private static final Logger LOG = LoggerFactory.getLogger(DeviceWiresManagementServiceImpl.class);
     private final DeviceConfigurationFactory deviceConfigurationFactory;
+    private final XmlUtil xmlUtil;
 
     private static final String SCOPE_ID = "scopeId";
     private static final String DEVICE_ID = "deviceId";
@@ -60,7 +66,8 @@ public class DeviceWiresManagementServiceImpl extends AbstractDeviceManagementTr
                                                     DeviceEventService deviceEventService,
                                                     DeviceEventFactory deviceEventFactory,
                                                     DeviceRegistryService deviceRegistryService,
-                                                    DeviceConfigurationFactory deviceConfigurationFactory) {
+                                                    DeviceConfigurationFactory deviceConfigurationFactory,
+                                            XmlUtil xmlUtil) {
         super(txManager,
                 authorizationService,
                 permissionFactory,
@@ -69,6 +76,7 @@ public class DeviceWiresManagementServiceImpl extends AbstractDeviceManagementTr
                 deviceRegistryService
         );
         this.deviceConfigurationFactory = deviceConfigurationFactory;
+        this.xmlUtil = xmlUtil;
     }
 
     @Override
@@ -116,6 +124,20 @@ public class DeviceWiresManagementServiceImpl extends AbstractDeviceManagementTr
 
             return deviceWireConfiguration;
     }
+
+    @Override
+    public void put(KapuaId scopeId, KapuaId deviceId, String jsonDeviceConfig, Long timeout)
+            throws KapuaException {
+        try {
+            put(scopeId,
+                    deviceId,
+                    xmlUtil.unmarshalJson(jsonDeviceConfig, DeviceConfigurationImpl.class),
+                    timeout);
+        } catch (JAXBException | SAXException e) {
+            throw new KapuaIllegalArgumentException("jsonDeviceConfig", jsonDeviceConfig);
+        }
+    }
+
 
     @Override
     public void put(KapuaId scopeId, KapuaId deviceId, DeviceConfiguration wireGraphConfig, Long timeout) throws KapuaException {
