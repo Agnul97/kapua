@@ -729,7 +729,7 @@ public class DeviceConfigComponents extends LayoutContainer {
 
                     @Override
                     public void handleEvent(BaseEvent be) {
-                        fileUpload.getFileUploadField().setToolTip(DEVICE_MSGS.deviceSnapshotFileTooltip());
+                        fileUpload.getFileUploadField().setToolTip(DEVICE_MSGS.deviceWireFileTooltip());
                     }
                 });
                 fileUpload.show();
