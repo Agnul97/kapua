@@ -125,7 +125,6 @@ public class DeviceConfigComponents extends LayoutContainer {
 
     protected boolean resetProcess;
     protected boolean applyProcess;
-    protected boolean downloadProcess;
     protected boolean uploadProcess;
 
     private GwtSession gwtSession;
@@ -278,7 +277,6 @@ public class DeviceConfigComponents extends LayoutContainer {
         toolBar.add(reset);
         toolBar.add(new SeparatorToolItem());
         toolBar.add(settings);
-        toolBar.add(new SeparatorToolItem());
 
         initWireGraphButtonsIfSupported();
     }
@@ -665,10 +663,13 @@ public class DeviceConfigComponents extends LayoutContainer {
                             @Override
                             public void onSuccess(Void result) {
                                 if (operationToPerformAfterDelete != null) {
+                                    // Unmask the panel before handing off to the next operation,
+                                    // so the user does not see a masked panel behind the upload dialog.
+                                    configPanel.unmask();
                                     operationToPerformAfterDelete.onSuccess(result);
                                 } else {
                                     dirty = true;
-                                    refresh();
+                                    refresh(); // refresh() → loader.load() → loaderLoad() → configPanel.unmask()
                                 }
                             }
                         });
@@ -677,22 +678,13 @@ public class DeviceConfigComponents extends LayoutContainer {
     }
 
     private void doDownloadWire() {
-        if (!downloadProcess) {
-            downloadProcess = true;
-            wireGraphButton.setEnabled(false);
-
-            if (selectedDevice != null) {
-                StringBuilder sbUrl = new StringBuilder();
-                sbUrl.append("device_wiregraph?");
-                sbUrl.append("&scopeId=")
-                        .append(URL.encodeQueryString(selectedDevice.getScopeId()))
-                        .append("&deviceId=")
-                        .append(URL.encodeQueryString(selectedDevice.getId()));
-                Window.open(sbUrl.toString(), "_blank", "location=no");
-            }
-
-            wireGraphButton.setEnabled(true);
-            downloadProcess = false;
+        // Download is a purely synchronous operation (opens a new browser window),
+        // so no process flag or button disable/enable is needed.
+        if (selectedDevice != null) {
+            String url = "device_wiregraph?" +
+                    "&scopeId=" + URL.encodeQueryString(selectedDevice.getScopeId()) +
+                    "&deviceId=" + URL.encodeQueryString(selectedDevice.getId());
+            Window.open(url, "_blank", "location=no");
         }
     }
 
@@ -719,6 +711,9 @@ public class DeviceConfigComponents extends LayoutContainer {
 
                     @Override
                     public void handleEvent(BaseEvent be) {
+                        // Re-enable the button and reset the flag only when the dialog is actually closed.
+                        wireGraphButton.setEnabled(true);
+                        uploadProcess = false;
                         dirty = true;
                         refresh();
                     }
@@ -733,10 +728,11 @@ public class DeviceConfigComponents extends LayoutContainer {
                     }
                 });
                 fileUpload.show();
+            } else {
+                // selectedDevice is null: nothing to do, re-enable immediately.
+                wireGraphButton.setEnabled(true);
+                uploadProcess = false;
             }
-
-            wireGraphButton.setEnabled(true);
-            uploadProcess = false;
         }
     }
 
