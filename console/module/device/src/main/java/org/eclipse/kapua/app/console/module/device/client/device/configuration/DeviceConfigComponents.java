@@ -23,9 +23,11 @@ import com.extjs.gxt.ui.client.event.BaseEvent;
 import com.extjs.gxt.ui.client.event.ButtonEvent;
 import com.extjs.gxt.ui.client.event.Events;
 import com.extjs.gxt.ui.client.event.Listener;
+import com.extjs.gxt.ui.client.event.MenuEvent;
 import com.extjs.gxt.ui.client.event.MessageBoxEvent;
 import com.extjs.gxt.ui.client.event.SelectionEvent;
 import com.extjs.gxt.ui.client.event.SelectionListener;
+import com.extjs.gxt.ui.client.widget.menu.Menu;
 import com.extjs.gxt.ui.client.store.TreeStore;
 import com.extjs.gxt.ui.client.util.Margins;
 import com.extjs.gxt.ui.client.widget.ContentPanel;
@@ -57,11 +59,13 @@ import org.eclipse.kapua.app.console.module.api.client.ui.button.DiscardButton;
 import org.eclipse.kapua.app.console.module.api.client.ui.button.KapuaButton;
 import org.eclipse.kapua.app.console.module.api.client.ui.button.RefreshButton;
 import org.eclipse.kapua.app.console.module.api.client.ui.button.SaveButton;
+import org.eclipse.kapua.app.console.module.api.client.ui.button.SplitButton;
 import org.eclipse.kapua.app.console.module.api.client.ui.dialog.FileUploadDialog;
 import org.eclipse.kapua.app.console.module.api.client.ui.dialog.InfoDialog;
 import org.eclipse.kapua.app.console.module.api.client.ui.dialog.InfoDialog.InfoDialogType;
 import org.eclipse.kapua.app.console.module.api.client.ui.dialog.KapuaMessageBox;
 import org.eclipse.kapua.app.console.module.api.client.ui.label.Label;
+import org.eclipse.kapua.app.console.module.api.client.ui.widget.KapuaMenuItem;
 import org.eclipse.kapua.app.console.module.api.client.util.ConsoleInfo;
 import org.eclipse.kapua.app.console.module.api.client.util.CssLiterals;
 import org.eclipse.kapua.app.console.module.api.client.util.FailureHandler;
@@ -72,9 +76,6 @@ import org.eclipse.kapua.app.console.module.api.shared.model.session.GwtSession;
 import org.eclipse.kapua.app.console.module.api.shared.service.GwtSecurityTokenService;
 import org.eclipse.kapua.app.console.module.api.shared.service.GwtSecurityTokenServiceAsync;
 import org.eclipse.kapua.app.console.module.device.client.device.configuration.settings.DeviceConfigurationsStoreSettingsDialog;
-import org.eclipse.kapua.app.console.module.device.client.device.wires.WireGraphDeleteButton;
-import org.eclipse.kapua.app.console.module.device.client.device.wires.WireGraphDownloadButton;
-import org.eclipse.kapua.app.console.module.device.client.device.wires.WireGraphUploadButton;
 import org.eclipse.kapua.app.console.module.device.client.messages.ConsoleDeviceMessages;
 import org.eclipse.kapua.app.console.module.device.shared.model.GwtDevice;
 import org.eclipse.kapua.app.console.module.device.shared.service.GwtDeviceManagementService;
@@ -111,9 +112,7 @@ public class DeviceConfigComponents extends LayoutContainer {
 
     private Button settings;
 
-    private Button deleteWireGraphButton;
-    private Button downloadWireGraphButton;
-    private Button uploadWireGraphButton;
+    private SplitButton wireGraphButton;
 
     private ContentPanel configPanel;
     private DeviceConfigPanel devConfPanel;
@@ -409,15 +408,50 @@ public class DeviceConfigComponents extends LayoutContainer {
     private void initWireGraphButtonsIfSupported() {
         if (selectedDevice.hasApplication(GwtDevice.GwtDeviceApplication.APP_WIRE_V1)) {
 
-            //DELETE wire graph button
-            deleteWireGraphButton = new WireGraphDeleteButton(new SelectionListener<ButtonEvent>() {
+            wireGraphButton = new SplitButton("Wire Graph", new KapuaIcon(IconSet.SITEMAP));
+
+            Menu wireGraphMenu = new Menu();
+            wireGraphButton.setMenu(wireGraphMenu);
+
+            // DOWNLOAD wire graph menu item
+            KapuaMenuItem downloadMenuItem = new KapuaMenuItem("Download Wire Graph Snapshot", IconSet.DOWNLOAD, new SelectionListener<MenuEvent>() {
                 @Override
-                public void componentSelected(ButtonEvent buttonEvent) {
+                public void componentSelected(MenuEvent menuEvent) {
+                    doDownloadWire();
+                }
+            });
+            wireGraphMenu.add(downloadMenuItem);
+
+            // UPLOAD wire graph menu item - with a prompt before deletion to recommend the user to delete the current wire graph before uploading a new one, to avoid potential conflicts between the two graphs.
+            KapuaMenuItem uploadMenuItem = new KapuaMenuItem("Upload/Apply Wire Graph Snapshot", IconSet.CLOUD_UPLOAD, new SelectionListener<MenuEvent>() {
+                @Override
+                public void componentSelected(MenuEvent menuEvent) {
+                    KapuaMessageBox.confirm(
+                            MSGS.confirm(),
+                            "Do you want to also delete the current wire graph before the upload (recommended)?",
+                            new Listener<MessageBoxEvent>() {
+                                @Override
+                                public void handleEvent(MessageBoxEvent ce) {
+                                    Dialog dialog = ce.getDialog();
+                                    if (dialog.yesText.equals(ce.getButtonClicked().getText())) {
+                                        doDeleteWire(uploadWireOnSuccess()); // Perform deletion before
+                                    } else {
+                                        doUploadWire(); // Don't perform deletion before
+                                    }
+                                }
+                            });
+                }
+            });
+            wireGraphMenu.add(uploadMenuItem);
+
+            // DELETE wire graph menu item
+            KapuaMenuItem deleteMenuItem = new KapuaMenuItem("Delete Wire Graph Snapshot", IconSet.TRASH, new SelectionListener<MenuEvent>() {
+                @Override
+                public void componentSelected(MenuEvent menuEvent) {
                     KapuaMessageBox.confirm(
                             MSGS.confirm(),
                             "Are you sure you want to delete the wire graph configuration? This action cannot be undone.",
                             new Listener<MessageBoxEvent>() {
-
                                 @Override
                                 public void handleEvent(MessageBoxEvent ce) {
                                     Dialog dialog = ce.getDialog();
@@ -428,44 +462,10 @@ public class DeviceConfigComponents extends LayoutContainer {
                             });
                 }
             });
-
-            //DOWNLOAD wire graph button
-            downloadWireGraphButton = new WireGraphDownloadButton(new SelectionListener<ButtonEvent>() {
-                @Override
-                public void componentSelected(ButtonEvent buttonEvent) {
-                    doDownloadWire();
-                }
-            });
-
-            //UPLOAD wire graph button - with a prompt before deletion to recommend the user to delete the current wire graph before uploading a new one, to avoid potential conflicts between the two graphs.
-            uploadWireGraphButton = new WireGraphUploadButton(new SelectionListener<ButtonEvent>() {
-
-                @Override
-                public void componentSelected(ButtonEvent ce) {
-                    KapuaMessageBox.confirm(
-                            MSGS.confirm(),
-                            "Do you want to also delete the current wire graph before the upload (recommended)?",
-                            new Listener<MessageBoxEvent>() {
-
-                                @Override
-                                public void handleEvent(MessageBoxEvent ce) {
-                                    Dialog dialog = ce.getDialog();
-                                    if (dialog.yesText.equals(ce.getButtonClicked().getText())) {
-                                        doDeleteWire(uploadWireOnSuccess()); //Perform deletion before
-                                    } else {
-                                        doUploadWire(); //Don't perform deletion before
-                                    }
-                                }
-                            });
-                }
-            });
+            wireGraphMenu.add(deleteMenuItem);
 
             toolBar.add(new SeparatorToolItem());
-            toolBar.add(downloadWireGraphButton);
-            toolBar.add(new SeparatorToolItem());
-            toolBar.add(uploadWireGraphButton);
-            toolBar.add(new SeparatorToolItem());
-            toolBar.add(deleteWireGraphButton);
+            toolBar.add(wireGraphButton);
         }
     }
     // --------------------------------------------------------------------------------------
@@ -679,7 +679,7 @@ public class DeviceConfigComponents extends LayoutContainer {
     private void doDownloadWire() {
         if (!downloadProcess) {
             downloadProcess = true;
-            downloadWireGraphButton.setEnabled(false);
+            wireGraphButton.setEnabled(false);
 
             if (selectedDevice != null) {
                 StringBuilder sbUrl = new StringBuilder();
@@ -691,7 +691,7 @@ public class DeviceConfigComponents extends LayoutContainer {
                 Window.open(sbUrl.toString(), "_blank", "location=no");
             }
 
-            downloadWireGraphButton.setEnabled(true);
+            wireGraphButton.setEnabled(true);
             downloadProcess = false;
         }
     }
@@ -699,7 +699,7 @@ public class DeviceConfigComponents extends LayoutContainer {
     private void doUploadWire() {
         if (!uploadProcess) {
             uploadProcess = true;
-            uploadWireGraphButton.setEnabled(false);
+            wireGraphButton.setEnabled(false);
 
             if (selectedDevice != null) {
                 HiddenField<String> accountField = new HiddenField<String>();
@@ -735,7 +735,7 @@ public class DeviceConfigComponents extends LayoutContainer {
                 fileUpload.show();
             }
 
-            uploadWireGraphButton.setEnabled(true);
+            wireGraphButton.setEnabled(true);
             uploadProcess = false;
         }
     }
