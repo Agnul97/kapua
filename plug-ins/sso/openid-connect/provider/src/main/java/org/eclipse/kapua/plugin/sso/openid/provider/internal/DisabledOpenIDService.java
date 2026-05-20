@@ -13,7 +13,9 @@
  *******************************************************************************/
 package org.eclipse.kapua.plugin.sso.openid.provider.internal;
 
+import org.eclipse.kapua.KapuaException;
 import org.eclipse.kapua.plugin.sso.openid.OpenIDService;
+import org.eclipse.kapua.service.account.Account;
 
 import javax.json.JsonObject;
 import java.net.URI;
@@ -50,5 +52,15 @@ public class DisabledOpenIDService implements OpenIDService {
     @Override
     public String getId() {
         return DISABLED_ID;
+    }
+
+    @Override
+    public boolean supportsBrokering() {
+        return false;
+    }
+
+    @Override
+    public boolean thisAccountSupportsDirectLogin(Account account) throws KapuaException {
+        return false;
     }
 }

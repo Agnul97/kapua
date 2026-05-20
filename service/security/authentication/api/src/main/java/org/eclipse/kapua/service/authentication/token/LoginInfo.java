@@ -120,5 +120,10 @@ public interface LoginInfo extends KapuaSerializable {
     @Deprecated
     void setGroupPermission(Set<GroupPermission> groupPermissions);
 
+    @XmlElement(name = "ssoUrl")
+    String getSSOUrl();
+
+    void setSSOUrl(String ssoUrl);
+
 
 }

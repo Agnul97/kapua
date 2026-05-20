@@ -23,12 +23,14 @@ import org.eclipse.kapua.plugin.sso.openid.provider.OpenIDUtils;
 import org.eclipse.kapua.plugin.sso.openid.provider.keycloak.jwt.KeycloakJwtProcessor;
 import org.eclipse.kapua.plugin.sso.openid.provider.keycloak.setting.KeycloakOpenIDSetting;
 import org.eclipse.kapua.plugin.sso.openid.provider.setting.OpenIDSetting;
+import org.eclipse.kapua.service.account.AccountService;
 
 public class KeycloakOpenIdProviderModule extends AbstractKapuaModule {
     @Override
     protected void configureModule() {
         bind(KeycloakOpenIDSetting.class).toInstance(new KeycloakOpenIDSetting());
         bind(KeycloakOpenIDUtils.class).in(Singleton.class);
+        bind(KeycloakAdminClient.class).in(Singleton.class);
     }
 
     @ProvidesIntoSet
@@ -40,7 +42,9 @@ public class KeycloakOpenIdProviderModule extends AbstractKapuaModule {
     @ProvidesIntoSet
     @Singleton
     OpenIDService keycloakOpenIDService(final OpenIDSetting openIDSetting,
-                                        KeycloakOpenIDUtils keycloakOpenIDUtils) throws OpenIDException {
-        return new KeycloakOpenIDService(openIDSetting, keycloakOpenIDUtils);
+                                        KeycloakOpenIDUtils keycloakOpenIDUtils,
+                                        KeycloakAdminClient keycloakAdminClient,
+                                        AccountService accountService) throws OpenIDException {
+        return new KeycloakOpenIDService(openIDSetting, keycloakOpenIDUtils, keycloakAdminClient, accountService);
     }
 }

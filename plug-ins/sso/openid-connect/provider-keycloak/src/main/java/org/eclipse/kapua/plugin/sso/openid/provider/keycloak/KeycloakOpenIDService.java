@@ -13,9 +13,20 @@
  *******************************************************************************/
 package org.eclipse.kapua.plugin.sso.openid.provider.keycloak;
 
+import org.eclipse.kapua.KapuaException;
+import org.eclipse.kapua.commons.model.id.KapuaEid;
+import org.eclipse.kapua.commons.security.KapuaSecurityUtils;
+import org.eclipse.kapua.model.id.KapuaId;
+import org.eclipse.kapua.plugin.sso.openid.exception.OpenIDException;
 import org.eclipse.kapua.plugin.sso.openid.exception.OpenIDIllegalArgumentException;
 import org.eclipse.kapua.plugin.sso.openid.provider.AbstractOpenIDService;
 import org.eclipse.kapua.plugin.sso.openid.provider.setting.OpenIDSetting;
+import org.eclipse.kapua.service.account.Account;
+import org.eclipse.kapua.service.account.AccountService;
+
+import javax.json.JsonObject;
+import java.math.BigInteger;
+import java.util.Optional;
 
 /**
  * The Keycloak OpenID service class.
@@ -26,12 +37,19 @@ public class KeycloakOpenIDService extends AbstractOpenIDService {
     private static final String KEYCLOAK_TOKEN_URI_SUFFIX = "/protocol/openid-connect/token";
     private static final String KEYCLOAK_USERINFO_URI_SUFFIX = "/protocol/openid-connect/userinfo";
     private static final String KEYCLOAK_LOGOUT_URI_SUFFIX = "/protocol/openid-connect/logout";
+
+    private final AccountService accountService;
     private final KeycloakOpenIDUtils keycloakOpenIDUtils;
+    private final KeycloakAdminClient keycloakAdminClient;
 
     public KeycloakOpenIDService(final OpenIDSetting ssoSettings,
-                                 KeycloakOpenIDUtils keycloakOpenIDUtils) {
+                                 KeycloakOpenIDUtils keycloakOpenIDUtils,
+                                 KeycloakAdminClient keycloakAdminClient,
+                                 AccountService accountService) {
         super(ssoSettings);
         this.keycloakOpenIDUtils = keycloakOpenIDUtils;
+        this.keycloakAdminClient = keycloakAdminClient;
+        this.accountService = accountService;
     }
 
     @Override
@@ -59,7 +77,56 @@ public class KeycloakOpenIDService extends AbstractOpenIDService {
     }
 
     @Override
+    public boolean supportsBrokering() {
+        return true;
+    }
+
+    @Override
+    public boolean thisAccountSupportsDirectLogin(Account account) throws KapuaException {
+        try {
+            if (account.getId().equals(KapuaId.ONE)) { //root account
+                return findOrganizationByAccountId(account.getName()).isPresent();
+            } else {
+                String parentAccountPath = account.getParentAccountPath();
+                String lv1AccountId = getLv1AccountId(parentAccountPath);
+                Account lv1Account = KapuaSecurityUtils.doPrivileged(() -> accountService.find(new KapuaEid(new BigInteger(lv1AccountId))));
+                return findOrganizationByAccountId(lv1Account.getName()).isPresent();
+            }
+        } catch (OpenIDException e) {
+            // In case of any exception while retrieving the account information, we consider that the account does not support direct login
+            return false;
+        }
+    }
+
+    private static String getLv1AccountId(String parentAccountPath) {
+        int firstSlash = parentAccountPath.indexOf('/');
+        int secondSlash = parentAccountPath.indexOf('/', firstSlash + 1);
+        int thirdSlash = parentAccountPath.indexOf('/', secondSlash + 1);
+        String lv1AccountId;
+        if (thirdSlash == -1) { //it's a level-1 account
+            lv1AccountId = parentAccountPath.substring(secondSlash + 1);
+        } else {
+            lv1AccountId = parentAccountPath.substring(secondSlash + 1, thirdSlash);
+        }
+        return lv1AccountId;
+    }
+
+
+    @Override
     public String getId() {
         return "keycloak";
+    }
+
+
+    /**
+     * Searches for a Keycloak Organization by its {@code accountid} attribute.
+     *
+     * @param accountName the value of the {@code accountid} attribute.
+     * @return the first matching organization as a {@link JsonObject}, or {@link Optional#empty()} if not found.
+     * @throws OpenIDException if the Admin API call fails.
+     * @since 2.1.0
+     */
+    public Optional<JsonObject> findOrganizationByAccountId(String accountName) throws OpenIDException {
+        return keycloakAdminClient.findOrganizationByAccountId(accountName);
     }
 }

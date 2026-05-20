@@ -12,8 +12,10 @@
  *******************************************************************************/
 package org.eclipse.kapua.plugin.sso.openid;
 
+import org.eclipse.kapua.KapuaException;
 import org.eclipse.kapua.plugin.sso.openid.exception.OpenIDTokenException;
 import org.eclipse.kapua.plugin.sso.openid.exception.uri.OpenIDUriException;
+import org.eclipse.kapua.service.account.Account;
 
 import javax.json.JsonObject;
 import java.net.URI;
@@ -81,4 +83,8 @@ public interface OpenIDService {
     JsonObject getUserInfo(String accessToken) throws OpenIDTokenException;
 
     String getId();
+
+    boolean supportsBrokering();
+
+    boolean thisAccountSupportsDirectLogin(Account account) throws KapuaException;
 }

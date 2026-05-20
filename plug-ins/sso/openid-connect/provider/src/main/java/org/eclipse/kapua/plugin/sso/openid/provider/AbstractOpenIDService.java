@@ -19,6 +19,7 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.message.BasicNameValuePair;
+import org.eclipse.kapua.KapuaException;
 import org.eclipse.kapua.commons.util.log.ConfigurationPrinter;
 import org.eclipse.kapua.plugin.sso.openid.OpenIDService;
 import org.eclipse.kapua.plugin.sso.openid.exception.OpenIDException;
@@ -28,6 +29,7 @@ import org.eclipse.kapua.plugin.sso.openid.exception.uri.OpenIDLoginUriException
 import org.eclipse.kapua.plugin.sso.openid.exception.uri.OpenIDLogoutUriException;
 import org.eclipse.kapua.plugin.sso.openid.provider.setting.OpenIDSetting;
 import org.eclipse.kapua.plugin.sso.openid.provider.setting.OpenIDSettingKeys;
+import org.eclipse.kapua.service.account.Account;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -132,6 +134,10 @@ public abstract class AbstractOpenIDService implements OpenIDService {
     protected String getClientSecret() {
         return openIDSettings.getString(OpenIDSettingKeys.SSO_OPENID_CLIENT_SECRET);
     }
+
+    public abstract boolean supportsBrokering();
+
+    public abstract boolean thisAccountSupportsDirectLogin(Account account) throws KapuaException;
 
     @Override
     public String getLoginUri(final String state, final URI redirectUri) throws OpenIDLoginUriException {

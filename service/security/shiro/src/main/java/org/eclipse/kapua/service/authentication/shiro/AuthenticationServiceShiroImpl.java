@@ -40,6 +40,10 @@ import org.eclipse.kapua.commons.util.KapuaDelayUtil;
 import org.eclipse.kapua.model.id.KapuaId;
 import org.eclipse.kapua.model.query.predicate.AndPredicate;
 import org.eclipse.kapua.model.query.predicate.AttributePredicate;
+import org.eclipse.kapua.plugin.sso.openid.OpenIDLocator;
+import org.eclipse.kapua.plugin.sso.openid.OpenIDService;
+import org.eclipse.kapua.service.account.Account;
+import org.eclipse.kapua.service.account.AccountService;
 import org.eclipse.kapua.service.authentication.AuthenticationCredentials;
 import org.eclipse.kapua.service.authentication.AuthenticationService;
 import org.eclipse.kapua.service.authentication.LoginCredentials;
@@ -118,6 +122,8 @@ public class AuthenticationServiceShiroImpl implements AuthenticationService {
     private final GroupRoleService groupRoleService;
     private final GroupPermissionService groupPermissionService;
     private final UserService userService;
+    private final AccountService accountService;
+    private final OpenIDService openIDService;
 
     private final Set<CredentialsConverter> credentialsConverters;
 
@@ -137,7 +143,9 @@ public class AuthenticationServiceShiroImpl implements AuthenticationService {
             GroupRoleService groupRoleService,
             GroupPermissionService groupPermissionService,
             UserService userService,
-            Set<CredentialsConverter> credentialsConverters
+            Set<CredentialsConverter> credentialsConverters,
+            AccountService accountService,
+            OpenIDLocator openIDLocator
     ) {
         this.credentialService = credentialService;
         this.mfaOptionService = mfaOptionService;
@@ -154,6 +162,8 @@ public class AuthenticationServiceShiroImpl implements AuthenticationService {
         this.groupPermissionService = groupPermissionService;
         this.userService = userService;
         this.credentialsConverters = credentialsConverters;
+        this.accountService = accountService;
+        this.openIDService = openIDLocator.getService();
     }
 
     @Override
@@ -433,6 +443,16 @@ public class AuthenticationServiceShiroImpl implements AuthenticationService {
 
         loginInfo.setGroupRolePermissions(allGroupRolePermissions);
         loginInfo.setGroupPermissions(allGroupPermissions);
+
+        if (openIDService.supportsBrokering()) {
+            KapuaId accountId = accessToken.getScopeId();
+            Account thisAccount = accountService.find(accountId);
+            if (openIDService.thisAccountSupportsDirectLogin(thisAccount)) {
+                loginInfo.setSSOUrl("<consoleUrl>/?accountid=" + thisAccount.getName());
+            } else {
+                loginInfo.setSSOUrl("");
+            }
+        }
 
         return loginInfo;
     }

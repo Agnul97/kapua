@@ -14,6 +14,7 @@
 package org.eclipse.kapua.plugin.sso.openid.provider.generic;
 
 import com.google.common.base.Strings;
+import org.eclipse.kapua.KapuaException;
 import org.eclipse.kapua.plugin.sso.openid.exception.OpenIDException;
 import org.eclipse.kapua.plugin.sso.openid.exception.OpenIDIllegalArgumentException;
 import org.eclipse.kapua.plugin.sso.openid.exception.uri.OpenIDIllegalUriException;
@@ -22,6 +23,7 @@ import org.eclipse.kapua.plugin.sso.openid.provider.OpenIDUtils;
 import org.eclipse.kapua.plugin.sso.openid.provider.generic.setting.GenericOpenIDSetting;
 import org.eclipse.kapua.plugin.sso.openid.provider.generic.setting.GenericOpenIDSettingKeys;
 import org.eclipse.kapua.plugin.sso.openid.provider.setting.OpenIDSetting;
+import org.eclipse.kapua.service.account.Account;
 
 import javax.inject.Inject;
 import java.net.URI;
@@ -92,6 +94,16 @@ public class GenericOpenIDService extends AbstractOpenIDService {
             }
             return tokenUri;
         }
+    }
+
+    @Override
+    public boolean supportsBrokering() {
+        return false;
+    }
+
+    @Override
+    public boolean thisAccountSupportsDirectLogin(Account account) throws KapuaException {
+        return false;
     }
 
     @Override

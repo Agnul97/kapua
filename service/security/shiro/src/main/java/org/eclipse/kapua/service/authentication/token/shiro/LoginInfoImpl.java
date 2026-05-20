@@ -29,6 +29,7 @@ public class LoginInfoImpl implements LoginInfo {
 
     private Set<RolePermission> groupRolePermissions;
     private Set<GroupPermission> groupPermissions;
+    private String ssoUrl;
 
     @Override
     public AccessToken getAccessToken() {
@@ -137,4 +138,15 @@ public class LoginInfoImpl implements LoginInfo {
     public void setGroupPermission(Set<GroupPermission> groupPermissions) {
         setGroupPermissions(groupPermissions);
     }
+
+    @Override
+    public String getSSOUrl() {
+        return ssoUrl;
+    }
+
+    @Override
+    public void setSSOUrl(String ssoUrl) {
+        this.ssoUrl = ssoUrl;
+    }
+
 }

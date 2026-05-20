@@ -22,7 +22,10 @@ import org.eclipse.kapua.app.console.module.api.client.GwtKapuaException;
 import org.eclipse.kapua.app.console.module.api.server.util.KapuaExceptionHandler;
 import org.eclipse.kapua.app.console.module.api.setting.ConsoleSetting;
 import org.eclipse.kapua.app.console.module.api.setting.ConsoleSettingKeys;
+import org.eclipse.kapua.locator.KapuaLocator;
 import org.eclipse.kapua.plugin.sso.openid.OpenIDService;
+import org.eclipse.kapua.service.authentication.AuthenticationService;
+import org.eclipse.kapua.service.authentication.token.LoginInfo;
 
 import java.net.URI;
 import java.util.UUID;
@@ -33,6 +36,9 @@ public class GwtSettingsServiceImpl extends RemoteServiceServlet implements GwtS
 
     //Injection not supported here, unfortunately
     private static final ConsoleSetting CONSOLE_SETTINGS = ConsoleSetting.getInstance();
+
+    private static final KapuaLocator LOCATOR = KapuaLocator.getInstance();
+    private final AuthenticationService authenticationService = LOCATOR.getService(AuthenticationService.class);
 
     @Override
     public GwtProductInformation getProductInformation() {
@@ -49,6 +55,29 @@ public class GwtSettingsServiceImpl extends RemoteServiceServlet implements GwtS
     public String getOpenIDLoginUri() throws GwtKapuaException {
         try {
             return getOpenIdService().getLoginUri(UUID.randomUUID().toString(), ConsoleSsoHelper.getRedirectUri());
+        } catch (Exception t) {
+            throw KapuaExceptionHandler.buildExceptionFromError(t);
+        }
+    }
+
+    //return "" if this account has no supported direct login
+    @Override
+    public String getOpenIDLoginOrganizationUri() throws GwtKapuaException {
+        try {
+            LoginInfo loginInfo = authenticationService.getLoginInfo();
+            if (loginInfo == null) {
+                throw new KapuaIllegalArgumentException("loginInfo", null);
+            }
+            String partialSSOUri = loginInfo.getSSOUrl(); // pattern : `<consoleUrl>/?accountid=X`
+            if (partialSSOUri == null || partialSSOUri.isEmpty()) {
+                return "";
+            }
+            String consoleUrl = ConsoleSsoHelper.getHomeUri();
+            if (consoleUrl == null || consoleUrl.isEmpty()) {
+                return partialSSOUri;
+            }
+            return partialSSOUri.contains("<consoleUrl>") ? partialSSOUri.replace("<consoleUrl>", consoleUrl) : partialSSOUri;
+
         } catch (Exception t) {
             throw KapuaExceptionHandler.buildExceptionFromError(t);
         }
