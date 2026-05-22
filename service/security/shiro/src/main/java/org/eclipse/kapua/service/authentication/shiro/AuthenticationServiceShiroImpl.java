@@ -42,6 +42,7 @@ import org.eclipse.kapua.model.query.predicate.AndPredicate;
 import org.eclipse.kapua.model.query.predicate.AttributePredicate;
 import org.eclipse.kapua.plugin.sso.openid.OpenIDLocator;
 import org.eclipse.kapua.plugin.sso.openid.OpenIDService;
+import org.eclipse.kapua.plugin.sso.openid.SSOData;
 import org.eclipse.kapua.service.account.Account;
 import org.eclipse.kapua.service.account.AccountService;
 import org.eclipse.kapua.service.authentication.AuthenticationCredentials;
@@ -444,12 +445,14 @@ public class AuthenticationServiceShiroImpl implements AuthenticationService {
         loginInfo.setGroupRolePermissions(allGroupRolePermissions);
         loginInfo.setGroupPermissions(allGroupPermissions);
 
-        if (openIDService.supportsBrokering()) {
-            KapuaId accountId = accessToken.getScopeId();
-            Account thisAccount = accountService.find(accountId);
-            if (openIDService.thisAccountSupportsDirectLogin(thisAccount)) {
-                loginInfo.setSSOUrl("<consoleUrl>/?accountid=" + thisAccount.getName());
-            } else {
+        //TODO: check on openID service supporting brokering
+        KapuaId accountId = accessToken.getScopeId();
+        Account thisAccount = accountService.find(accountId);
+        SSOData ssoDataAccount = openIDService.retrieveSSODataForThisAccount(thisAccount);
+        if (ssoDataAccount != null) {
+            if (ssoDataAccount.getAccountSupportsDirectLogin()) {
+                loginInfo.setSSOUrl("<consoleUrl>/" + ssoDataAccount.getUriSuffixDirectLogin()); //TODO: better baseurl
+            } else { //TODO: remove this branch entirely
                 loginInfo.setSSOUrl("");
             }
         }

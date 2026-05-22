@@ -15,6 +15,7 @@ package org.eclipse.kapua.plugin.sso.openid.provider.generic;
 
 import com.google.common.base.Strings;
 import org.eclipse.kapua.KapuaException;
+import org.eclipse.kapua.plugin.sso.openid.SSOData;
 import org.eclipse.kapua.plugin.sso.openid.exception.OpenIDException;
 import org.eclipse.kapua.plugin.sso.openid.exception.OpenIDIllegalArgumentException;
 import org.eclipse.kapua.plugin.sso.openid.exception.uri.OpenIDIllegalUriException;
@@ -97,13 +98,8 @@ public class GenericOpenIDService extends AbstractOpenIDService {
     }
 
     @Override
-    public boolean supportsBrokering() {
-        return false;
-    }
-
-    @Override
-    public boolean thisAccountSupportsDirectLogin(Account account) throws KapuaException {
-        return false;
+    public SSOData retrieveSSODataForThisAccount(Account account) throws KapuaException {
+        return null;
     }
 
     @Override

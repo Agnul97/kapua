@@ -22,6 +22,7 @@ import org.apache.http.message.BasicNameValuePair;
 import org.eclipse.kapua.KapuaException;
 import org.eclipse.kapua.commons.util.log.ConfigurationPrinter;
 import org.eclipse.kapua.plugin.sso.openid.OpenIDService;
+import org.eclipse.kapua.plugin.sso.openid.SSOData;
 import org.eclipse.kapua.plugin.sso.openid.exception.OpenIDException;
 import org.eclipse.kapua.plugin.sso.openid.exception.OpenIDIllegalArgumentException;
 import org.eclipse.kapua.plugin.sso.openid.exception.OpenIDTokenException;
@@ -135,9 +136,7 @@ public abstract class AbstractOpenIDService implements OpenIDService {
         return openIDSettings.getString(OpenIDSettingKeys.SSO_OPENID_CLIENT_SECRET);
     }
 
-    public abstract boolean supportsBrokering();
-
-    public abstract boolean thisAccountSupportsDirectLogin(Account account) throws KapuaException;
+    public abstract SSOData retrieveSSODataForThisAccount(Account account) throws KapuaException;
 
     @Override
     public String getLoginUri(final String state, final URI redirectUri) throws OpenIDLoginUriException {

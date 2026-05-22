@@ -84,7 +84,5 @@ public interface OpenIDService {
 
     String getId();
 
-    boolean supportsBrokering();
-
-    boolean thisAccountSupportsDirectLogin(Account account) throws KapuaException;
+    SSOData retrieveSSODataForThisAccount(Account account) throws KapuaException;
 }
