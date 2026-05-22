@@ -43,6 +43,8 @@ import org.eclipse.kapua.model.query.predicate.AttributePredicate;
 import org.eclipse.kapua.plugin.sso.openid.OpenIDLocator;
 import org.eclipse.kapua.plugin.sso.openid.OpenIDService;
 import org.eclipse.kapua.plugin.sso.openid.SSOData;
+import org.eclipse.kapua.plugin.sso.openid.provider.setting.OpenIDSetting;
+import org.eclipse.kapua.plugin.sso.openid.provider.setting.OpenIDSettingKeys;
 import org.eclipse.kapua.service.account.Account;
 import org.eclipse.kapua.service.account.AccountService;
 import org.eclipse.kapua.service.authentication.AuthenticationCredentials;
@@ -125,6 +127,7 @@ public class AuthenticationServiceShiroImpl implements AuthenticationService {
     private final UserService userService;
     private final AccountService accountService;
     private final OpenIDService openIDService;
+    private final OpenIDSetting openIDSetting;
 
     private final Set<CredentialsConverter> credentialsConverters;
 
@@ -146,7 +149,8 @@ public class AuthenticationServiceShiroImpl implements AuthenticationService {
             UserService userService,
             Set<CredentialsConverter> credentialsConverters,
             AccountService accountService,
-            OpenIDLocator openIDLocator
+            OpenIDLocator openIDLocator,
+            OpenIDSetting openIDSetting
     ) {
         this.credentialService = credentialService;
         this.mfaOptionService = mfaOptionService;
@@ -165,6 +169,7 @@ public class AuthenticationServiceShiroImpl implements AuthenticationService {
         this.credentialsConverters = credentialsConverters;
         this.accountService = accountService;
         this.openIDService = openIDLocator.getService();
+        this.openIDSetting = openIDSetting;
     }
 
     @Override
@@ -445,15 +450,12 @@ public class AuthenticationServiceShiroImpl implements AuthenticationService {
         loginInfo.setGroupRolePermissions(allGroupRolePermissions);
         loginInfo.setGroupPermissions(allGroupPermissions);
 
-        //TODO: check on openID service supporting brokering
-        KapuaId accountId = accessToken.getScopeId();
-        Account thisAccount = accountService.find(accountId);
-        SSOData ssoDataAccount = openIDService.retrieveSSODataForThisAccount(thisAccount);
-        if (ssoDataAccount != null) {
-            if (ssoDataAccount.getAccountSupportsDirectLogin()) {
-                loginInfo.setSSOUrl("<consoleUrl>/" + ssoDataAccount.getUriSuffixDirectLogin()); //TODO: better baseurl
-            } else { //TODO: remove this branch entirely
-                loginInfo.setSSOUrl("");
+        if (openIDSetting.getBoolean(OpenIDSettingKeys.SSO_OPENID_BROKERING_ENABLED)) { //check if platform is using SSO brokering first
+            KapuaId accountId = accessToken.getScopeId();
+            Account thisAccount = accountService.find(accountId);
+            SSOData ssoDataAccount = openIDService.retrieveSSODataForThisAccount(thisAccount);
+            if (ssoDataAccount != null) { //the openID provider not enabled/supports brokering
+                loginInfo.setSsoData(ssoDataAccount);
             }
         }
 

@@ -84,5 +84,6 @@ public interface OpenIDService {
 
     String getId();
 
+    //must return null if brokering not enabled in the openID provider
     SSOData retrieveSSODataForThisAccount(Account account) throws KapuaException;
 }

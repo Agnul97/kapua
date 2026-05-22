@@ -14,17 +14,40 @@ package org.eclipse.kapua.plugin.sso.openid;
 
 import org.eclipse.kapua.service.account.Account;
 
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlTransient;
+import javax.xml.bind.annotation.XmlType;
+
+/**
+ * SSO Data definition.
+ * <p>
+ * The {@link Account} field is excluded from XML/JSON serialization ({@link XmlTransient})
+ * as it is an internal reference not meant to be exposed via the REST API.
+ * </p>
+ *
+ * @since 2.0.0
+ */
+@XmlRootElement(name = "ssoData")
+@XmlAccessorType(XmlAccessType.PROPERTY)
+@XmlType(propOrder = {"accountSupportsDirectLogin", "uriSuffixDirectLogin"})
 public interface SSOData {
 
+    @XmlTransient
     void setAccount(Account account);
 
+    @XmlTransient
     Account getAccount();
 
     void setAccountSupportsDirectLogin(boolean supportDirectLogin);
 
+    @XmlElement(name = "accountSupportsDirectLogin")
     boolean getAccountSupportsDirectLogin();
 
     void setUriSuffixDirectLogin(String suffix);
 
+    @XmlElement(name = "uriSuffixDirectLogin")
     String getUriSuffixDirectLogin();
 }

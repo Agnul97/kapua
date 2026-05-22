@@ -21,6 +21,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import java.util.Set;
 
 import org.eclipse.kapua.KapuaSerializable;
+import org.eclipse.kapua.plugin.sso.openid.SSOData;
 import org.eclipse.kapua.service.authorization.access.AccessPermission;
 import org.eclipse.kapua.service.authorization.group.GroupPermission;
 import org.eclipse.kapua.service.authorization.role.RolePermission;
@@ -120,10 +121,10 @@ public interface LoginInfo extends KapuaSerializable {
     @Deprecated
     void setGroupPermission(Set<GroupPermission> groupPermissions);
 
-    @XmlElement(name = "ssoUrl")
-    String getSSOUrl();
+    @XmlElement(name = "ssoData")
+    SSOData getSsoData();
 
-    void setSSOUrl(String ssoUrl);
+    void setSsoData(SSOData ssoData);
 
 
 }

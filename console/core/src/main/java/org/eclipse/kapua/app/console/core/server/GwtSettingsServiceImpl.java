@@ -24,6 +24,7 @@ import org.eclipse.kapua.app.console.module.api.setting.ConsoleSetting;
 import org.eclipse.kapua.app.console.module.api.setting.ConsoleSettingKeys;
 import org.eclipse.kapua.locator.KapuaLocator;
 import org.eclipse.kapua.plugin.sso.openid.OpenIDService;
+import org.eclipse.kapua.plugin.sso.openid.SSOData;
 import org.eclipse.kapua.service.authentication.AuthenticationService;
 import org.eclipse.kapua.service.authentication.token.LoginInfo;
 
@@ -68,16 +69,13 @@ public class GwtSettingsServiceImpl extends RemoteServiceServlet implements GwtS
             if (loginInfo == null) {
                 throw new KapuaIllegalArgumentException("loginInfo", null);
             }
-            String partialSSOUri = loginInfo.getSSOUrl(); // pattern : `<consoleUrl>/?accountid=X`
-            if (partialSSOUri == null || partialSSOUri.isEmpty()) {
+            SSOData ssoData = loginInfo.getSsoData();
+            if (ssoData != null && ssoData.getAccountSupportsDirectLogin() && ssoData.getUriSuffixDirectLogin() != null) {
+                String baseConsoleUrl = ConsoleSsoHelper.getHomeUri();
+                return baseConsoleUrl + ssoData.getUriSuffixDirectLogin();
+            } else {
                 return "";
             }
-            String consoleUrl = ConsoleSsoHelper.getHomeUri();
-            if (consoleUrl == null || consoleUrl.isEmpty()) {
-                return partialSSOUri;
-            }
-            return partialSSOUri.contains("<consoleUrl>") ? partialSSOUri.replace("<consoleUrl>", consoleUrl) : partialSSOUri;
-
         } catch (Exception t) {
             throw KapuaExceptionHandler.buildExceptionFromError(t);
         }

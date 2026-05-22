@@ -15,6 +15,7 @@ package org.eclipse.kapua.service.authentication.token.shiro;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.eclipse.kapua.plugin.sso.openid.SSOData;
 import org.eclipse.kapua.service.authentication.token.AccessToken;
 import org.eclipse.kapua.service.authentication.token.LoginInfo;
 import org.eclipse.kapua.service.authorization.access.AccessPermission;
@@ -29,7 +30,7 @@ public class LoginInfoImpl implements LoginInfo {
 
     private Set<RolePermission> groupRolePermissions;
     private Set<GroupPermission> groupPermissions;
-    private String ssoUrl;
+    private SSOData ssoData;
 
     @Override
     public AccessToken getAccessToken() {
@@ -140,13 +141,13 @@ public class LoginInfoImpl implements LoginInfo {
     }
 
     @Override
-    public String getSSOUrl() {
-        return ssoUrl;
+    public SSOData getSsoData() {
+        return ssoData;
     }
 
     @Override
-    public void setSSOUrl(String ssoUrl) {
-        this.ssoUrl = ssoUrl;
+    public void setSsoData(SSOData ssoData) {
+        this.ssoData = ssoData;
     }
 
 }

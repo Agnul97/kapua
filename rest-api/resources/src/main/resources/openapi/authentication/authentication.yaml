@@ -41,6 +41,22 @@ components:
               type: string
               description: A long-lived key to be used within an authentication with MFA from a trusted machine
               pattern: '^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*$'
+    ssoData:
+      type: object
+      description:
+        SSO-account data, refers to logged account and populated only when the platform uses a SSO broker
+      properties:
+        accountSupportsDirectLogin:
+          type: boolean
+          description: Whether the logged account supports direct SSO login (without email and 2fa).
+        uriSuffixDirectLogin:
+          type: string
+          description:
+            The URI query suffix to append when redirecting to the direct login page for this account.
+          example: '?accountid=my-account'
+      example:
+        accountSupportsDirectLogin: false
+        uriSuffixDirectLogin: '?accountid=my-account'
     loginInfo:
       type: object
       properties:
@@ -66,6 +82,8 @@ components:
           type: array
           items:
             $ref: '../role/role.yaml#/components/schemas/rolePermission'
+        ssoData:
+          $ref: '#/components/schemas/ssoData'
       example:
         type: loginInfo
         accessToken:
@@ -143,6 +161,9 @@ components:
               domain: job
               targetScopeId: AQ
               forwardable: false
+        ssoData:
+          supportsDirectLogin: false
+          uriSuffixDirectLogin: '?accountid=my-account'
     usernamePasswordCredentials:
       allOf:
       - type: object
