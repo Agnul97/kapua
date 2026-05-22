@@ -26,7 +26,6 @@ import org.apache.http.util.EntityUtils;
 import org.eclipse.kapua.plugin.sso.openid.exception.OpenIDException;
 import org.eclipse.kapua.plugin.sso.openid.exception.OpenIDTokenException;
 import org.eclipse.kapua.plugin.sso.openid.provider.setting.OpenIDSetting;
-import org.eclipse.kapua.plugin.sso.openid.provider.setting.OpenIDSettingKeys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,14 +40,8 @@ import java.util.Optional;
 
 /**
  * HTTP client for the Keycloak Admin REST API.
- * <p>
- * Authenticates via {@code client_credentials} grant using the configured
- * {@code sso.openid.client.id} / {@code sso.openid.client.secret}.
- * The service account associated to the client must have the
- * {@code view-organizations} (or {@code realm-admin}) role assigned.
- * </p>
  *
- * @since 2.1.0
+ * @since 2.0.0
  */
 public class KeycloakAdminClient implements AutoCloseable {
 
@@ -91,7 +84,7 @@ public class KeycloakAdminClient implements AutoCloseable {
      * @param accountName the value of the {@code accountid} organization attribute to search for.
      * @return the first matching organization as a {@link JsonObject}, or {@link Optional#empty()} if not found.
      * @throws OpenIDException if authentication or the HTTP call fails.
-     * @since 2.1.0
+     * @since 2.0.0
      */
     public Optional<JsonObject> findOrganizationByAccountId(String accountName) throws OpenIDException {
         if (Strings.isNullOrEmpty(accountName)) {
@@ -132,6 +125,12 @@ public class KeycloakAdminClient implements AutoCloseable {
                     authenticate();
                     return doFindOrganizationByAccountId(accountName, true);
                 }
+                if (status == HttpStatus.SC_FORBIDDEN) {
+                    throw new OpenIDTokenException(new IOException(
+                            "Keycloak Admin API returned 403 Forbidden for organizations search. " +
+                            "Ensure the service account has the 'view-organizations' role from 'realm-management'. " +
+                            "Note: this role is not yet released in Keycloak 26.x — see https://github.com/keycloak/keycloak/pull/47266"));
+                }
                 if (status != HttpStatus.SC_OK) {
                     throw new OpenIDTokenException(new IOException(
                             "Keycloak Admin API returned HTTP " + status + " for organizations search: " + body));
@@ -156,15 +155,15 @@ public class KeycloakAdminClient implements AutoCloseable {
      * Obtains a {@code client_credentials} access token from Keycloak and caches it.
      *
      * @throws OpenIDTokenException if the token request fails.
-     * @since 2.1.0
+     * @since 2.0.0
      */
     private void authenticate() throws OpenIDException {
         try {
             String tokenUrl = keycloakOpenIDUtils.getProviderUri()
                     + String.format(TOKEN_PATH, keycloakOpenIDUtils.getRealm());
 
-            String clientId = openIDSetting.getString(OpenIDSettingKeys.SSO_OPENID_CLIENT_ID);
-            String clientSecret = openIDSetting.getString(OpenIDSettingKeys.SSO_OPENID_CLIENT_SECRET);
+            String clientId = keycloakOpenIDUtils.getKeycloakApiClientID();
+            String clientSecret = keycloakOpenIDUtils.getKeycloakApiClientSecret();
 
             LOG.debug("Authenticating to Keycloak Admin API at {}", tokenUrl);
             HttpPost post = new HttpPost(tokenUrl);
