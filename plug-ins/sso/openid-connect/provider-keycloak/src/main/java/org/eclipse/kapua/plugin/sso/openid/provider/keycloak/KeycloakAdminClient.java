@@ -23,7 +23,6 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
-import org.eclipse.kapua.KapuaException;
 import org.eclipse.kapua.plugin.sso.openid.exception.OpenIDApiCommunicationException;
 import org.eclipse.kapua.plugin.sso.openid.provider.setting.OpenIDSetting;
 import org.slf4j.Logger;

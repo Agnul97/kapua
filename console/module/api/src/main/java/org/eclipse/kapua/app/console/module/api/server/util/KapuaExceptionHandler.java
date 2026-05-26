@@ -240,11 +240,7 @@ public class KapuaExceptionHandler {
             return new GwtKapuaException(GwtKapuaErrorCode.PERMISSION_DELETE_NOT_ALLOWED, throwable, throwable.getMessage());
         }
         else if (throwable instanceof OpenIDException) {
-            if (throwable.getCause() != null) {
-                return new GwtKapuaException(GwtKapuaErrorCode.OPENID_ERROR, throwable, throwable.getCause().getMessage());
-            } else {
-                return new GwtKapuaException(GwtKapuaErrorCode.OPENID_ERROR, throwable, throwable.getMessage());
-            }
+            return new GwtKapuaException(GwtKapuaErrorCode.OPENID_ERROR, throwable);
         }
         // Default exception
         return GwtKapuaException.internalError(throwable, throwable.getMessage());

@@ -18,7 +18,6 @@ import org.eclipse.kapua.commons.model.id.KapuaEid;
 import org.eclipse.kapua.commons.security.KapuaSecurityUtils;
 import org.eclipse.kapua.model.id.KapuaId;
 import org.eclipse.kapua.plugin.sso.openid.SSOData;
-import org.eclipse.kapua.plugin.sso.openid.exception.OpenIDApiCommunicationException;
 import org.eclipse.kapua.plugin.sso.openid.exception.OpenIDIllegalArgumentException;
 import org.eclipse.kapua.plugin.sso.openid.provider.AbstractOpenIDService;
 import org.eclipse.kapua.plugin.sso.openid.provider.setting.OpenIDSetting;
@@ -78,23 +77,16 @@ public class KeycloakOpenIDService extends AbstractOpenIDService {
     @Override
     public SSOData retrieveSSODataForThisAccount(Account account) throws KapuaException {
         SSODataKeycloak ssoData = new SSODataKeycloak(account);
-
-        try {
-            if (account.getId().equals(KapuaId.ONE)) { //root account
-                ssoData.setAccountSupportsDirectLogin(keycloakAdminClient.findOrganizationByAccountId(account.getName()).isPresent());
-            } else {
-                String parentAccountPath = account.getParentAccountPath();
-                String lv1AccountId = getLv1AccountId(parentAccountPath);
-                Account lv1Account = KapuaSecurityUtils.doPrivileged(() -> accountService.find(new KapuaEid(new BigInteger(lv1AccountId))));
-                ssoData.setAccountSupportsDirectLogin(keycloakAdminClient.findOrganizationByAccountId(lv1Account.getName()).isPresent());
-            }
-            return ssoData;
-        } catch (OpenIDApiCommunicationException e) {
-            String meaningfulMessageToClients = "Error while retrieving SSO Data for "
-                    + account.getName();
-
-            throw new OpenIDApiCommunicationException(new Throwable(meaningfulMessageToClients));
+        if (account.getId().equals(KapuaId.ONE)) { //root account
+            ssoData.setAccountSupportsDirectLogin(keycloakAdminClient.findOrganizationByAccountId(account.getName()).isPresent());
+        } else {
+            String parentAccountPath = account.getParentAccountPath();
+            String lv1AccountId = getLv1AccountId(parentAccountPath);
+            Account lv1Account = KapuaSecurityUtils.doPrivileged(() -> accountService.find(new KapuaEid(new BigInteger(lv1AccountId))));
+            ssoData.setAccountSupportsDirectLogin(keycloakAdminClient.findOrganizationByAccountId(lv1Account.getName()).isPresent());
         }
+        return ssoData;
+
     }
 
     private static String getLv1AccountId(String parentAccountPath) {
