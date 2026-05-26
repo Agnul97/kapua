@@ -23,8 +23,8 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
-import org.eclipse.kapua.plugin.sso.openid.exception.OpenIDException;
-import org.eclipse.kapua.plugin.sso.openid.exception.OpenIDTokenException;
+import org.eclipse.kapua.KapuaException;
+import org.eclipse.kapua.plugin.sso.openid.exception.OpenIDApiCommunicationException;
 import org.eclipse.kapua.plugin.sso.openid.provider.setting.OpenIDSetting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,10 +83,10 @@ public class KeycloakAdminClient implements AutoCloseable {
      *
      * @param accountName the value of the {@code accountid} organization attribute to search for.
      * @return the first matching organization as a {@link JsonObject}, or {@link Optional#empty()} if not found.
-     * @throws OpenIDException if authentication or the HTTP call fails.
+     * @throws OpenIDApiCommunicationException if authentication or the HTTP call fails.
      * @since 2.0.0
      */
-    public Optional<JsonObject> findOrganizationByAccountId(String accountName) throws OpenIDException {
+    public Optional<JsonObject> findOrganizationByAccountId(String accountName) throws OpenIDApiCommunicationException {
         if (Strings.isNullOrEmpty(accountName)) {
             return Optional.empty();
         }
@@ -103,7 +103,7 @@ public class KeycloakAdminClient implements AutoCloseable {
      *
      * @since 2.1.0
      */
-    private Optional<JsonObject> doFindOrganizationByAccountId(String accountName, boolean isRetry) throws OpenIDException {
+    private Optional<JsonObject> doFindOrganizationByAccountId(String accountName, boolean isRetry) throws OpenIDApiCommunicationException {
         try {
             String url = keycloakOpenIDUtils.getProviderUri()
                     + String.format(ADMIN_ORGANIZATIONS_PATH, keycloakOpenIDUtils.getRealm())
@@ -126,13 +126,13 @@ public class KeycloakAdminClient implements AutoCloseable {
                     return doFindOrganizationByAccountId(accountName, true);
                 }
                 if (status == HttpStatus.SC_FORBIDDEN) {
-                    throw new OpenIDTokenException(new IOException(
+                    LOG.error("403 forbidden on keycloak auth for missing service-role permissions");
+                    throw new OpenIDApiCommunicationException(new IOException(
                             "Keycloak Admin API returned 403 Forbidden for organizations search. " +
-                            "Ensure the service account has the 'view-organizations' role from 'realm-management'. " +
-                            "Note: this role is not yet released in Keycloak 26.x — see https://github.com/keycloak/keycloak/pull/47266"));
+                            "Ensure the service account has the 'view-organizations' role from 'realm-management' (or at least manage-realm). "));
                 }
                 if (status != HttpStatus.SC_OK) {
-                    throw new OpenIDTokenException(new IOException(
+                    throw new OpenIDApiCommunicationException(new IOException(
                             "Keycloak Admin API returned HTTP " + status + " for organizations search: " + body));
                 }
 
@@ -144,20 +144,20 @@ public class KeycloakAdminClient implements AutoCloseable {
                 }
                 return Optional.empty();
             }
-        } catch (OpenIDException oe) {
+        } catch (OpenIDApiCommunicationException oe) {
             throw oe;
         } catch (Exception e) {
-            throw new OpenIDTokenException(e);
+            throw new OpenIDApiCommunicationException(e);
         }
     }
 
     /**
      * Obtains a {@code client_credentials} access token from Keycloak and caches it.
      *
-     * @throws OpenIDTokenException if the token request fails.
+     * @throws OpenIDApiCommunicationException if the token request fails.
      * @since 2.0.0
      */
-    private void authenticate() throws OpenIDException {
+    private void authenticate() throws OpenIDApiCommunicationException {
         try {
             String tokenUrl = keycloakOpenIDUtils.getProviderUri()
                     + String.format(TOKEN_PATH, keycloakOpenIDUtils.getRealm());
@@ -180,7 +180,7 @@ public class KeycloakAdminClient implements AutoCloseable {
                 String body = EntityUtils.toString(response.getEntity());
 
                 if (status != HttpStatus.SC_OK) {
-                    throw new OpenIDTokenException(new IOException(
+                    throw new OpenIDApiCommunicationException(new IOException(
                             "Keycloak token endpoint returned HTTP " + status + ": " + body));
                 }
 
@@ -189,10 +189,10 @@ public class KeycloakAdminClient implements AutoCloseable {
                 }
                 LOG.debug("Successfully authenticated to Keycloak Admin API.");
             }
-        } catch (OpenIDException oe) {
+        } catch (OpenIDApiCommunicationException oe) {
             throw oe;
         } catch (Exception e) {
-            throw new OpenIDTokenException(e);
+            throw new OpenIDApiCommunicationException(e);
         }
     }
 

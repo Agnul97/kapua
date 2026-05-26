@@ -18,7 +18,7 @@ import org.eclipse.kapua.commons.model.id.KapuaEid;
 import org.eclipse.kapua.commons.security.KapuaSecurityUtils;
 import org.eclipse.kapua.model.id.KapuaId;
 import org.eclipse.kapua.plugin.sso.openid.SSOData;
-import org.eclipse.kapua.plugin.sso.openid.exception.OpenIDException;
+import org.eclipse.kapua.plugin.sso.openid.exception.OpenIDApiCommunicationException;
 import org.eclipse.kapua.plugin.sso.openid.exception.OpenIDIllegalArgumentException;
 import org.eclipse.kapua.plugin.sso.openid.provider.AbstractOpenIDService;
 import org.eclipse.kapua.plugin.sso.openid.provider.setting.OpenIDSetting;
@@ -89,11 +89,11 @@ public class KeycloakOpenIDService extends AbstractOpenIDService {
                 ssoData.setAccountSupportsDirectLogin(keycloakAdminClient.findOrganizationByAccountId(lv1Account.getName()).isPresent());
             }
             return ssoData;
-        } catch (OpenIDException e) {
-            // In case of any exception while retrieving the account information, we consider that the account does not support direct login
-            //TODO: handle exception throwing something
-            ssoData.setAccountSupportsDirectLogin(false);
-            return ssoData;
+        } catch (OpenIDApiCommunicationException e) {
+            String meaningfulMessageToClients = "Error while retrieving SSO Data for "
+                    + account.getName();
+
+            throw new OpenIDApiCommunicationException(new Throwable(meaningfulMessageToClients));
         }
     }
 
