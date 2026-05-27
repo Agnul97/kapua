@@ -13,7 +13,7 @@
 package org.eclipse.kapua.plugin.sso.openid.exception;
 
 /**
- * Signals an error
+ * Signals an error communicating with the openID provider API
  * @since 2.0.0
  */
 public class OpenIDApiCommunicationException extends OpenIDException {

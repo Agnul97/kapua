@@ -22,6 +22,7 @@ import org.eclipse.kapua.service.account.Account;
  */
 public class SSODataKeycloak implements SSOData {
 
+    private static final String ACCOUNT_ID_PARAM = "accountid";
     private Account account;
     private boolean supportsDirectLogin;
 
@@ -64,6 +65,6 @@ public class SSODataKeycloak implements SSOData {
 
     @Override
     public String getUriSuffixDirectLogin() {
-        return account != null ? "?accountid=" + account.getName() : null;
+        return account != null ? "?" + ACCOUNT_ID_PARAM + "=" + account.getName() : null;
     }
 }

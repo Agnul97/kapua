@@ -46,6 +46,7 @@ public class KeycloakAdminClient implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(KeycloakAdminClient.class);
 
+    private static final String ACCOUNT_ID_PARAM = "accountid";
     private static final String TOKEN_PATH = "/realms/%s/protocol/openid-connect/token";
     private static final String ADMIN_ORGANIZATIONS_PATH = "/admin/realms/%s/organizations";
 
@@ -106,7 +107,7 @@ public class KeycloakAdminClient implements AutoCloseable {
         try {
             String url = keycloakOpenIDUtils.getProviderUri()
                     + String.format(ADMIN_ORGANIZATIONS_PATH, keycloakOpenIDUtils.getRealm())
-                    + "?q=accountid:" + accountName; //TODO: this needs to be not hardcoded
+                    + "?q=" + ACCOUNT_ID_PARAM + ":" + accountName;
 
             LOG.debug("GET {}", url);
             HttpGet get = new HttpGet(url);
