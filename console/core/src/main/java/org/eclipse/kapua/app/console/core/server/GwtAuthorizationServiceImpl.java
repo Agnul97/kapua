@@ -41,6 +41,8 @@ import org.eclipse.kapua.commons.util.ThrowingRunnable;
 import org.eclipse.kapua.locator.KapuaLocator;
 import org.eclipse.kapua.model.domain.Actions;
 import org.eclipse.kapua.model.id.KapuaId;
+import org.eclipse.kapua.plugin.sso.openid.provider.setting.OpenIDSetting;
+import org.eclipse.kapua.plugin.sso.openid.provider.setting.OpenIDSettingKeys;
 import org.eclipse.kapua.service.account.Account;
 import org.eclipse.kapua.service.account.AccountService;
 import org.eclipse.kapua.service.authentication.AuthenticationService;
@@ -87,6 +89,7 @@ public class GwtAuthorizationServiceImpl extends KapuaRemoteServiceServlet imple
     private static final UserService USER_SERVICE = LOCATOR.getService(UserService.class);
     private static final UserGroupService USER_GROUP_SERVICE = LOCATOR.getService(UserGroupService.class);
     private static final DatastoreSettings DATASTORE_SETTINGS = LOCATOR.getComponent(DatastoreSettings.class);
+    private static final OpenIDSetting OPENID_SETTING = LOCATOR.getComponent(OpenIDSetting.class);
 
     /**
      * Login call in response to the login dialog.
@@ -272,6 +275,7 @@ public class GwtAuthorizationServiceImpl extends KapuaRemoteServiceServlet imple
         gwtSession.setBuildVersion(commonsConfig.getString(SystemSettingKey.BUILD_REVISION));
         gwtSession.setBuildNumber(commonsConfig.getString(SystemSettingKey.BUILD_NUMBER));
         gwtSession.setSsoEnabled(ConsoleSsoLocator.getLocator(this).getService().isEnabled());
+        gwtSession.setSsoBrokeringEnabled(OPENID_SETTING.getBoolean(OpenIDSettingKeys.SSO_OPENID_BROKERING_ENABLED, false));
         gwtSession.setDatastoreDisabled(DATASTORE_SETTINGS.getBoolean(DatastoreSettingsKey.DISABLE_DATASTORE, false));
 
         // Account Info
