@@ -399,6 +399,7 @@ public class AuthenticationServiceShiroImpl implements AuthenticationService {
 
     @Override
     public LoginInfo getLoginInfo() throws KapuaException {
+        isAuthenticated();
         LoginInfo loginInfo = accessTokenFactory.newLoginInfo();
 
         // AccessToken
@@ -452,7 +453,7 @@ public class AuthenticationServiceShiroImpl implements AuthenticationService {
 
         if (openIDSetting.getBoolean(OpenIDSettingKeys.SSO_OPENID_BROKERING_ENABLED)) { //check if platform is using SSO brokering first
             KapuaId accountId = accessToken.getScopeId();
-            Account thisAccount = accountService.find(accountId);
+            Account thisAccount = KapuaSecurityUtils.doPrivileged(() -> accountService.find(accountId));
             SSOData ssoDataAccount = openIDService.retrieveSSODataForThisAccount(thisAccount);
             if (ssoDataAccount != null) { //the openID provider not enabled/supports brokering
                 loginInfo.setSsoData(ssoDataAccount);
