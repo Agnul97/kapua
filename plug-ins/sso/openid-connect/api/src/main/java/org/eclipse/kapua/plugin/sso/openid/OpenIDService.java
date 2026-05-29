@@ -84,6 +84,13 @@ public interface OpenIDService {
 
     String getId();
 
-    //must return null if brokering not enabled in the openID provider
+    /**
+     * Get the SSO data for the given account
+     *
+     * @param account the account for which to retrieve the SSO data
+     * @return the SSO Data for the account OR null if the OpenID provider doesn't support brokering
+     * @throws KapuaException if it fails to retrieve the tokens.
+     * @since 2.0.0
+     */
     SSOData retrieveSSODataForThisAccount(Account account) throws KapuaException;
 }
