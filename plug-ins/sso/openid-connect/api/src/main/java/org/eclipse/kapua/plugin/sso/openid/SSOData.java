@@ -20,6 +20,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
 import javax.xml.bind.annotation.XmlType;
+import java.util.List;
 
 /**
  * SSO Data definition.
@@ -32,7 +33,7 @@ import javax.xml.bind.annotation.XmlType;
  */
 @XmlRootElement(name = "ssoData")
 @XmlAccessorType(XmlAccessType.PROPERTY)
-@XmlType(propOrder = {"accountSupportsDirectLogin", "uriSuffixDirectLogin"})
+@XmlType(propOrder = {"accountSupportsBrokering", "accountSupportsDirectLogin", "uriSuffixDirectLogin", "companyDomainNames"})
 public interface SSOData {
 
     @XmlTransient
@@ -40,6 +41,11 @@ public interface SSOData {
 
     @XmlTransient
     Account getAccount();
+
+    void setAccountSupportsBrokering(boolean accountSupportsBrokering);
+
+    @XmlElement(name = "accountSupportsBrokering")
+    boolean getAccountSupportsBrokering();
 
     void setAccountSupportsDirectLogin(boolean supportDirectLogin);
 
@@ -50,4 +56,9 @@ public interface SSOData {
 
     @XmlElement(name = "uriSuffixDirectLogin")
     String getUriSuffixDirectLogin();
+
+    @XmlElement(name = "companyDomainNames")
+    List<String> getCompanyDomainNames();
+
+    void setCompanyDomainNames(List<String> domains);
 }

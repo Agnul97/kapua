@@ -112,11 +112,11 @@ public class GwtSession extends KapuaBaseModel implements Serializable {
         this.ssoEnabled = ssoEnabled;
     }
 
-    public boolean isSsoBrokeringEnabled() {
+    public boolean isSsoBrokeringEnabledForSession() {
         return ssoBrokeringEnabled;
     }
 
-    public void setSsoBrokeringEnabled(boolean ssoBrokeringEnabled) {
+    public void setSsoBrokeringEnabledForSession(boolean ssoBrokeringEnabled) {
         this.ssoBrokeringEnabled=ssoBrokeringEnabled;
     }
 

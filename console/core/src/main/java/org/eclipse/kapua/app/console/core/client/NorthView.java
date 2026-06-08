@@ -229,7 +229,7 @@ public class NorthView extends LayoutContainer {
                 userActionMenu.add(new SeparatorMenuItem());
                 // "Get SSO URL" menu item — only shown when SSO is enabled
                 if (currentSession.isSsoEnabled() &&
-                    currentSession.isSsoBrokeringEnabled()) {
+                    currentSession.isSsoBrokeringEnabledForSession()) {
                     KapuaMenuItem getSsoUrlMenuItem = new KapuaMenuItem();
                     getSsoUrlMenuItem.setText(CONSOLE_CORE_MESSAGES.ssoUrlMenuItemLabel());
                     getSsoUrlMenuItem.setIcon(IconSet.SIGN_IN);

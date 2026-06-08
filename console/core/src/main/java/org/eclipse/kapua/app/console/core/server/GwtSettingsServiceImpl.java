@@ -70,7 +70,10 @@ public class GwtSettingsServiceImpl extends RemoteServiceServlet implements GwtS
                 throw new KapuaIllegalArgumentException("loginInfo", null);
             }
             SSOData ssoData = loginInfo.getSsoData();
-            if (ssoData != null && ssoData.getAccountSupportsDirectLogin() && ssoData.getUriSuffixDirectLogin() != null) {
+            if (ssoData != null &&
+                    ssoData.getAccountSupportsBrokering() &&
+                    ssoData.getAccountSupportsDirectLogin() &&
+                    ssoData.getUriSuffixDirectLogin() != null) {
                 String baseConsoleUrl = ConsoleSsoHelper.getHomeUri();
                 return baseConsoleUrl + ssoData.getUriSuffixDirectLogin();
             } else {

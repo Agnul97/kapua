@@ -13,9 +13,11 @@
 package org.eclipse.kapua.plugin.sso.openid;
 
 import org.eclipse.kapua.KapuaException;
+import org.eclipse.kapua.model.id.KapuaId;
 import org.eclipse.kapua.plugin.sso.openid.exception.OpenIDTokenException;
 import org.eclipse.kapua.plugin.sso.openid.exception.uri.OpenIDUriException;
-import org.eclipse.kapua.service.account.Account;
+import org.eclipse.kapua.service.KapuaService;
+import org.eclipse.kapua.service.config.KapuaConfigurableService;
 
 import javax.json.JsonObject;
 import java.net.URI;
@@ -25,7 +27,7 @@ import java.net.URI;
  *
  * @since 1.0.0
  */
-public interface OpenIDService {
+public interface OpenIDService extends KapuaConfigurableService {
 
     /**
      * Check if the service is enabled.
@@ -87,10 +89,21 @@ public interface OpenIDService {
     /**
      * Get the SSO data for the given account
      *
-     * @param account the account for which to retrieve the SSO data
+     * @param accountId the accountid of the Account for which to retrieve the SSO data
      * @return the SSO Data for the account OR null if the OpenID provider doesn't support brokering
      * @throws KapuaException if it fails to retrieve the tokens.
      * @since 2.0.0
      */
-    SSOData retrieveSSODataForThisAccount(Account account) throws KapuaException;
+    SSOData retrieveSSODataForAccount(KapuaId accountId) throws KapuaException;
+
+    /**
+     * Whether THE SSO BROKERING is enabled for the given scope.
+     *
+     * @param accountId The accountid of the Account for which to check.
+     * @return {@code true} if the {@link KapuaService} is enabled, {@code false} otherwise.
+     * @since 2.0.0
+     */
+    default boolean isBrokeringEnabledForAccount(KapuaId accountId) throws KapuaException {
+        return false;
+    }
 }
