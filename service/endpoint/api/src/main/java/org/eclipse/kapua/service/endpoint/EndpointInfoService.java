@@ -12,7 +12,9 @@
  *******************************************************************************/
 package org.eclipse.kapua.service.endpoint;
 
+import com.google.common.collect.Multimap;
 import org.eclipse.kapua.KapuaException;
+import org.eclipse.kapua.model.id.KapuaId;
 import org.eclipse.kapua.model.query.KapuaQuery;
 import org.eclipse.kapua.service.KapuaEntityService;
 import org.eclipse.kapua.service.KapuaUpdatableEntityService;
@@ -41,6 +43,9 @@ public interface EndpointInfoService extends KapuaEntityService<EndpointInfo, En
             throws KapuaException;
 
     long count(KapuaQuery query, String section)
+            throws KapuaException;
+
+    Multimap<String, KapuaId> endpointsGroupedByAccountId(String section)
             throws KapuaException;
 
 }

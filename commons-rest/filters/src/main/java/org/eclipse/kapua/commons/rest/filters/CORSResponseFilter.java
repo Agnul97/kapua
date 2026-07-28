@@ -23,14 +23,7 @@ import org.eclipse.kapua.commons.rest.filters.settings.KapuaRestFiltersSettingKe
 import org.eclipse.kapua.commons.security.KapuaSecurityUtils;
 import org.eclipse.kapua.locator.KapuaLocator;
 import org.eclipse.kapua.model.id.KapuaId;
-import org.eclipse.kapua.service.account.AccountFactory;
-import org.eclipse.kapua.service.account.AccountListResult;
-import org.eclipse.kapua.service.account.AccountQuery;
-import org.eclipse.kapua.service.account.AccountService;
 import org.eclipse.kapua.service.endpoint.EndpointInfo;
-import org.eclipse.kapua.service.endpoint.EndpointInfoFactory;
-import org.eclipse.kapua.service.endpoint.EndpointInfoListResult;
-import org.eclipse.kapua.service.endpoint.EndpointInfoQuery;
 import org.eclipse.kapua.service.endpoint.EndpointInfoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,10 +58,7 @@ public class CORSResponseFilter implements Filter {
     private final Logger logger = LoggerFactory.getLogger(CORSResponseFilter.class);
 
     private final KapuaLocator locator = KapuaLocator.getInstance();
-    private final AccountService accountService = locator.getService(AccountService.class);
-    private final AccountFactory accountFactory = locator.getFactory(AccountFactory.class);
     private final EndpointInfoService endpointInfoService = locator.getService(EndpointInfoService.class);
-    private final EndpointInfoFactory endpointInfoFactory = locator.getFactory(EndpointInfoFactory.class);
     private final KapuaRestFiltersSetting kapuaRestFiltersSetting = locator.getComponent(KapuaRestFiltersSetting.class);
     private final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
     private ScheduledFuture<?> refreshTask;
@@ -190,28 +180,23 @@ public class CORSResponseFilter implements Filter {
         try {
             logger.info("Refreshing list of origins...");
 
-            Multimap<String, KapuaId> newAllowedOrigins = HashMultimap.create();
-            AccountQuery accounts = accountFactory.newQuery(null);
-            AccountListResult accountListResult = KapuaSecurityUtils.doPrivileged(() -> accountService.query(accounts));
-            accountListResult.getItems().forEach(account -> {
-                EndpointInfoQuery endpointInfoQuery = endpointInfoFactory.newQuery(account.getId());
-                try {
-                    EndpointInfoListResult endpointInfoListResult = KapuaSecurityUtils.doPrivileged(() -> endpointInfoService.query(endpointInfoQuery, EndpointInfo.ENDPOINT_TYPE_CORS));
-                    endpointInfoListResult.getItems().forEach(endpointInfo -> newAllowedOrigins.put(endpointInfo.toStringURI(), account.getId()));
-                } catch (KapuaException kapuaException) {
-                    logger.warn("Unable to add endpoints for account {} to CORS filter", account.getId().toCompactId(), kapuaException);
-                }
-            });
+            Multimap<String, KapuaId> corsEndpointsByAccountIDs = HashMultimap.create();
+            try {
+                corsEndpointsByAccountIDs = endpointInfoService.endpointsGroupedByAccountId(EndpointInfo.ENDPOINT_TYPE_CORS);
+            } catch (KapuaException kapuaException) {
+                logger.warn("Unable to associate origins to the accounts in the platform");
+            }
 
             for (String allowedSystemOrigin : allowedSystemOrigins) {
                 try {
                     String explicitAllowedSystemOrigin = getExplicitOrigin(allowedSystemOrigin);
-                    newAllowedOrigins.put(explicitAllowedSystemOrigin, KapuaId.ANY);
+                    corsEndpointsByAccountIDs.put(explicitAllowedSystemOrigin, KapuaId.ANY);
                 } catch (MalformedURLException malformedURLException) {
                     logger.warn("Unable to parse origin: {}", allowedSystemOrigin, malformedURLException);
                 }
             }
-            allowedOrigins = newAllowedOrigins;
+
+            allowedOrigins = corsEndpointsByAccountIDs;
 
             logger.info("Refreshing list of origins... DONE! Loaded {} origins", allowedOrigins.size());
         } catch (Exception exception) {

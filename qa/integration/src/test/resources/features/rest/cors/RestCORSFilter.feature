@@ -123,6 +123,8 @@ Feature: REST API tests for User
     And I expect "Access-Control-Allow-Origin" header in the response with value "https://api-sbx.everyware.io"
     And I expect "Access-Control-Allow-Credentials" header in the response with value "true"
 
-
-
+  @teardown
+  Scenario: Stop full docker environment
+    Given Stop full docker environment
+    And Clean Locator Instance
 

@@ -22,7 +22,8 @@ import org.eclipse.kapua.commons.model.domains.Domains;
 import org.eclipse.kapua.model.domain.Actions;
 import org.eclipse.kapua.model.domain.Domain;
 import org.eclipse.kapua.model.domain.DomainEntry;
-import org.eclipse.kapua.service.account.AccountService;
+import org.eclipse.kapua.service.account.AccountFactory;
+import org.eclipse.kapua.service.account.AccountRepository;
 import org.eclipse.kapua.service.authorization.AuthorizationService;
 import org.eclipse.kapua.service.authorization.permission.PermissionFactory;
 import org.eclipse.kapua.service.endpoint.EndpointInfoFactory;
@@ -41,15 +42,17 @@ public class EndpointModule extends AbstractKapuaModule {
             AuthorizationService authorizationService,
             PermissionFactory permissionFactory,
             EndpointInfoFactory endpointInfoFactory,
-            AccountService accountService,
             EndpointInfoRepository endpointInfoRepository,
+            AccountRepository accountRepository,
+            AccountFactory accountFactory,
             KapuaJpaTxManagerFactory jpaTxManagerFactory) {
         return new EndpointInfoServiceImpl(
-                accountService,
                 authorizationService,
                 permissionFactory,
                 endpointInfoFactory,
                 endpointInfoRepository,
+                accountRepository,
+                accountFactory,
                 jpaTxManagerFactory.create("kapua-endpoint"));
     }
 

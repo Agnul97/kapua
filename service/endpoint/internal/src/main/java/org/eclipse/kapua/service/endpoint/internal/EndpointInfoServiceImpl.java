@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.eclipse.kapua.service.endpoint.internal;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import org.eclipse.kapua.KapuaEntityNotFoundException;
 import org.eclipse.kapua.KapuaEntityUniquenessException;
 import org.eclipse.kapua.KapuaException;
@@ -27,7 +29,10 @@ import org.eclipse.kapua.model.query.predicate.AndPredicate;
 import org.eclipse.kapua.model.query.predicate.AttributePredicate.Operator;
 import org.eclipse.kapua.model.query.predicate.QueryPredicate;
 import org.eclipse.kapua.service.account.Account;
-import org.eclipse.kapua.service.account.AccountService;
+import org.eclipse.kapua.service.account.AccountFactory;
+import org.eclipse.kapua.service.account.AccountListResult;
+import org.eclipse.kapua.service.account.AccountQuery;
+import org.eclipse.kapua.service.account.AccountRepository;
 import org.eclipse.kapua.service.authorization.AuthorizationService;
 import org.eclipse.kapua.service.authorization.permission.PermissionFactory;
 import org.eclipse.kapua.service.endpoint.EndpointInfo;
@@ -60,23 +65,26 @@ public class EndpointInfoServiceImpl
     private final AuthorizationService authorizationService;
     private final PermissionFactory permissionFactory;
     private final EndpointInfoFactory endpointInfoFactory;
-    private final EndpointInfoRepository repository;
-    private final AccountService accountService;
+    private final EndpointInfoRepository endpointInfoRepository;
+    private final AccountRepository accountRepository;
+    private final AccountFactory accountFactory;
     private final TxManager txManager;
 
     @Inject
     public EndpointInfoServiceImpl(
-            AccountService accountService,
             AuthorizationService authorizationService,
             PermissionFactory permissionFactory,
             EndpointInfoFactory endpointInfoFactory,
             EndpointInfoRepository endpointInfoRepository,
+            AccountRepository accountRepository,
+            AccountFactory accountFactory,
             TxManager txManager) {
-        this.accountService = accountService;
         this.authorizationService = authorizationService;
         this.permissionFactory = permissionFactory;
         this.endpointInfoFactory = endpointInfoFactory;
-        this.repository = endpointInfoRepository;
+        this.endpointInfoRepository = endpointInfoRepository;
+        this.accountRepository = accountRepository;
+        this.accountFactory = accountFactory;
         this.txManager = txManager;
     }
 
@@ -126,7 +134,7 @@ public class EndpointInfoServiceImpl
         endpointInfo.setUsages(endpointInfoCreator.getUsages());
         endpointInfo.setEndpointType(endpointInfoCreator.getEndpointType());
 
-        return txManager.execute(tx -> repository.create(tx, endpointInfo));
+        return txManager.execute(tx -> endpointInfoRepository.create(tx, endpointInfo));
     }
 
     @Override
@@ -160,7 +168,7 @@ public class EndpointInfoServiceImpl
                 endpointInfo.getEndpointType());
 
         // Do update
-        return txManager.execute(tx -> repository.update(tx, endpointInfo));
+        return txManager.execute(tx -> endpointInfoRepository.update(tx, endpointInfo));
     }
 
     @Override
@@ -170,7 +178,7 @@ public class EndpointInfoServiceImpl
         // Check Access
         txManager.execute(tx -> {
             KapuaId scopeIdPermission = null;
-            if (repository.find(tx, scopeId, endpointInfoId)
+            if (endpointInfoRepository.find(tx, scopeId, endpointInfoId)
                     .map(ei -> ei.getEndpointType())
                     .map(et -> EndpointInfo.ENDPOINT_TYPE_CORS.equals(et))
                     .orElse(false)) {
@@ -181,7 +189,7 @@ public class EndpointInfoServiceImpl
                     permissionFactory.newPermission(Domains.ENDPOINT_INFO, Actions.delete, scopeIdPermission)
             );
             // Do delete
-            return repository.delete(tx, scopeId, endpointInfoId);
+            return endpointInfoRepository.delete(tx, scopeId, endpointInfoId);
         });
     }
 
@@ -195,7 +203,7 @@ public class EndpointInfoServiceImpl
             authorizationService.checkPermission(
                     permissionFactory.newPermission(Domains.ENDPOINT_INFO, Actions.read, scopeId)
             );
-            EndpointInfo endpointInfoToFind = repository.find(tx, KapuaId.ANY, endpointInfoId)
+            EndpointInfo endpointInfoToFind = endpointInfoRepository.find(tx, KapuaId.ANY, endpointInfoId)
                     .orElseThrow(() -> new KapuaEntityNotFoundException(EndpointInfo.TYPE, endpointInfoId)); // search the endpoint in any scope
 
             if (endpointInfoToFind.getScopeId().equals(scopeId)) { //found in the specified scope, search finish here
@@ -226,6 +234,22 @@ public class EndpointInfoServiceImpl
         return txManager.execute(txContext -> doCount(txContext, query, section));
     }
 
+    @Override
+    public Multimap<String, KapuaId> endpointsGroupedByAccountId(String section) throws KapuaException {
+        return txManager.execute(tx -> {
+            Multimap<String, KapuaId> newAllowedOrigins = HashMultimap.create();
+            AccountQuery accounts = accountFactory.newQuery(null);
+            AccountListResult accountListResult = KapuaSecurityUtils.doPrivileged(() -> accountRepository.query(tx, accounts));
+            for (Account account : accountListResult.getItems()) {
+                EndpointInfoQuery endpointInfoQuery = endpointInfoFactory.newQuery(account.getId());
+                EndpointInfoListResult endpointInfoListResult = KapuaSecurityUtils.doPrivileged(() -> doQuery(tx, endpointInfoQuery, section));
+                endpointInfoListResult.getItems().forEach(endpointInfo -> newAllowedOrigins.put(endpointInfo.toStringURI(), account.getId()));
+            }
+            return newAllowedOrigins;
+        });
+    }
+
+
     private Long doCount(TxContext txContext, KapuaQuery query, String section) throws KapuaException {
         ArgumentValidator.notNull(query, "query");
         // Check Access
@@ -236,7 +260,7 @@ public class EndpointInfoServiceImpl
                 txContext,
                 query,
                 section,
-                (tx, q) -> repository.count(tx, q),
+                (tx, q) -> endpointInfoRepository.count(tx, q),
                 a -> a == 0);
     }
 
@@ -261,7 +285,7 @@ public class EndpointInfoServiceImpl
                 tx,
                 query,
                 section,
-                (txContext, q) -> repository.query(txContext, q),
+                (txContext, q) -> endpointInfoRepository.query(txContext, q),
                 a -> a.isEmpty()
         );
     }
@@ -313,7 +337,7 @@ public class EndpointInfoServiceImpl
                     // There are endpoints (even not matching the query), exit because I found the "nearest usable" endpoints which don't have what I'm searching
                     break;
                 }
-                Account account = KapuaSecurityUtils.doPrivileged(() -> accountService.find(query.getScopeId()));
+                Account account = KapuaSecurityUtils.doPrivileged(() -> accountRepository.find(tx, KapuaId.ANY, query.getScopeId())).orElse(null);
 
                 if (account == null) {
                     throw new KapuaEntityNotFoundException(Account.TYPE, query.getScopeId());
@@ -377,7 +401,7 @@ public class EndpointInfoServiceImpl
     private boolean countAllEndpointsInScope(TxContext txContext, KapuaId scopeId, String section) throws KapuaException {
         EndpointInfoQuery totalQuery = endpointInfoFactory.newQuery(scopeId);
         addSectionToPredicate(totalQuery, section);
-        long totalCount = repository.count(txContext, totalQuery);
+        long totalCount = endpointInfoRepository.count(txContext, totalQuery);
         return totalCount != 0;
     }
 
