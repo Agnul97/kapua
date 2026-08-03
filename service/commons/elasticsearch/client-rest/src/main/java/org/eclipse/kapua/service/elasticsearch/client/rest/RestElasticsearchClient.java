@@ -44,10 +44,10 @@ import org.eclipse.kapua.service.elasticsearch.client.model.UpdateRequest;
 import org.eclipse.kapua.service.elasticsearch.client.model.UpdateResponse;
 import org.eclipse.kapua.service.elasticsearch.client.rest.exception.RequestEntityWriteError;
 import org.eclipse.kapua.service.elasticsearch.client.rest.exception.ResponseEntityReadError;
-import org.opensearch.client.Request;
-import org.opensearch.client.Response;
-import org.opensearch.client.ResponseException;
-import org.opensearch.client.RestClient;
+import org.eclipse.kapua.service.elasticsearch.client.rest.lowlevel.LowLevelSearchClient;
+import org.eclipse.kapua.service.elasticsearch.client.rest.lowlevel.LowLevelSearchRequest;
+import org.eclipse.kapua.service.elasticsearch.client.rest.lowlevel.LowLevelSearchResponse;
+import org.eclipse.kapua.service.elasticsearch.client.rest.lowlevel.LowLevelSearchResponseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,7 +67,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @since 1.0.0
  */
-public class RestElasticsearchClient extends AbstractElasticsearchClient<RestClient> {
+public class RestElasticsearchClient extends AbstractElasticsearchClient<LowLevelSearchClient> {
 
     private static final Logger LOG = LoggerFactory.getLogger(RestElasticsearchClient.class);
 
@@ -124,9 +124,9 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
         LOG.debug("Insert - converted object: '{}'", insertRequestStorableMap);
 
         String json = writeRequestFromMap(insertRequestStorableMap);
-        Request request = new Request(ElasticsearchKeywords.ACTION_PUT, ElasticsearchResourcePaths.insertType(insertRequest));
+        LowLevelSearchRequest request = getClient().newRequest(ElasticsearchKeywords.ACTION_PUT, ElasticsearchResourcePaths.insertType(insertRequest));
         request.setJsonEntity(json);
-        Response insertResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), insertRequest.getIndex(), "INSERT");
+        LowLevelSearchResponse insertResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), insertRequest.getIndex(), "INSERT");
 
         if (isRequestSuccessful(insertResponse)) {
             JsonNode responseNode = readResponseAsJsonNode(insertResponse);
@@ -149,9 +149,9 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
         LOG.debug("Upsert - converted object: '{}'", updateRequestMap);
 
         String json = writeRequestFromMap(updateRequestMap);
-        Request request = new Request(ElasticsearchKeywords.ACTION_POST, ElasticsearchResourcePaths.upsert(updateRequest.getIndex(), updateRequest.getId()));
+        LowLevelSearchRequest request = getClient().newRequest(ElasticsearchKeywords.ACTION_POST, ElasticsearchResourcePaths.upsert(updateRequest.getIndex(), updateRequest.getId()));
         request.setJsonEntity(json);
-        Response updateResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), updateRequest.getIndex(), "UPSERT");
+        LowLevelSearchResponse updateResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), updateRequest.getIndex(), "UPSERT");
 
         if (isRequestSuccessful(updateResponse)) {
             JsonNode responseNode = readResponseAsJsonNode(updateResponse);
@@ -181,9 +181,9 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
             bulkOperation.append(writeRequestFromMap(storableMap));
             bulkOperation.append(", \"doc_as_upsert\": true }\n");
         }
-        Request request = new Request(ElasticsearchKeywords.ACTION_POST, ElasticsearchResourcePaths.getBulkPath());
+        LowLevelSearchRequest request = getClient().newRequest(ElasticsearchKeywords.ACTION_POST, ElasticsearchResourcePaths.getBulkPath());
         request.setJsonEntity(bulkOperation.toString());
-        Response updateResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), "multi-index", "UPSERT BULK");
+        LowLevelSearchResponse updateResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), "multi-index", "UPSERT BULK");
 
         if (isRequestSuccessful(updateResponse)) {
             JsonNode responseNode = readResponseAsJsonNode(updateResponse);
@@ -245,9 +245,9 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
         ArrayNode resultsNode = null;
         String totalRelation = null;
 
-        Request request = new Request(ElasticsearchKeywords.ACTION_GET, ElasticsearchResourcePaths.search(index));
+        LowLevelSearchRequest request = getClient().newRequest(ElasticsearchKeywords.ACTION_GET, ElasticsearchResourcePaths.search(index));
         request.setJsonEntity(json);
-        Response queryResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), index, "QUERY");
+        LowLevelSearchResponse queryResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), index, "QUERY");
 
         if (isRequestSuccessful(queryResponse)) {
             JsonNode responseNode = readResponseAsJsonNode(queryResponse);
@@ -293,9 +293,9 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
         LOG.debug(COUNT_CONVERTED_QUERY, queryJsonNode);
 
         String json = writeRequestFromJsonNode(queryJsonNode);
-        Request request = new Request(ElasticsearchKeywords.ACTION_GET, ElasticsearchResourcePaths.search(index));
+        LowLevelSearchRequest request = getClient().newRequest(ElasticsearchKeywords.ACTION_GET, ElasticsearchResourcePaths.search(index));
         request.setJsonEntity(json);
-        Response queryResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), index, "COUNT");
+        LowLevelSearchResponse queryResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), index, "COUNT");
 
         long totalCount = 0;
         String totalRelation = null;
@@ -321,8 +321,8 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
     @Override
     public void delete(String index, String id) throws ClientException {
         LOG.debug("Delete - id: '{}'", id);
-        Request request = new Request(ElasticsearchKeywords.ACTION_DELETE, ElasticsearchResourcePaths.id(index, id));
-        Response deleteResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), index, ElasticsearchKeywords.ACTION_DELETE);
+        LowLevelSearchRequest request = getClient().newRequest(ElasticsearchKeywords.ACTION_DELETE, ElasticsearchResourcePaths.id(index, id));
+        LowLevelSearchResponse deleteResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), index, ElasticsearchKeywords.ACTION_DELETE);
 
         if (!isRequestSuccessful(deleteResponse) &&
                 !isRequestNotFound(deleteResponse)) {
@@ -337,9 +337,9 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
         LOG.debug(QUERY_CONVERTED_QUERY, queryJsonNode);
 
         String json = writeRequestFromJsonNode(queryJsonNode);
-        Request request = new Request(ElasticsearchKeywords.ACTION_POST, ElasticsearchResourcePaths.deleteByQuery(index));
+        LowLevelSearchRequest request = getClient().newRequest(ElasticsearchKeywords.ACTION_POST, ElasticsearchResourcePaths.deleteByQuery(index));
         request.setJsonEntity(json);
-        Response deleteResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), index, "DELETE BY QUERY");
+        LowLevelSearchResponse deleteResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), index, "DELETE BY QUERY");
 
         if (!isRequestSuccessful(deleteResponse) &&
                 !isRequestNotFound(deleteResponse) &&
@@ -351,8 +351,8 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
     @Override
     public IndexResponse isIndexExists(IndexRequest indexRequest) throws ClientException {
         LOG.debug("Index exists - index name: '{}'", indexRequest.getIndex());
-        Request request = new Request(ElasticsearchKeywords.ACTION_HEAD, ElasticsearchResourcePaths.index(indexRequest.getIndex()));
-        Response isIndexExistsResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), indexRequest.getIndex(), "INDEX EXIST");
+        LowLevelSearchRequest request = getClient().newRequest(ElasticsearchKeywords.ACTION_HEAD, ElasticsearchResourcePaths.index(indexRequest.getIndex()));
+        LowLevelSearchResponse isIndexExistsResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), indexRequest.getIndex(), "INDEX EXIST");
 
         if (isRequestSuccessful(isIndexExistsResponse)) {
             return new IndexResponse(true);
@@ -366,9 +366,9 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
     @Override
     public IndexResponse findIndexes(IndexRequest indexRequest) throws ClientException {
         LOG.debug("Find indexes - index prefix: '{}'", indexRequest.getIndex());
-        Request request = new Request(ElasticsearchKeywords.ACTION_GET, ElasticsearchResourcePaths.findIndex(indexRequest.getIndex()));
+        LowLevelSearchRequest request = getClient().newRequest(ElasticsearchKeywords.ACTION_GET, ElasticsearchResourcePaths.findIndex(indexRequest.getIndex()));
         request.addParameter("pretty", "true");
-        Response findIndexResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), indexRequest.getIndex(), "INDEX EXIST");
+        LowLevelSearchResponse findIndexResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), indexRequest.getIndex(), "INDEX EXIST");
 
         if (isRequestSuccessful(findIndexResponse)) {
             try {
@@ -388,9 +388,9 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
         LOG.debug("Create index - object: '{}'", indexSettings);
 
         String json = writeRequestFromJsonNode(indexSettings);
-        Request request = new Request(ElasticsearchKeywords.ACTION_PUT, ElasticsearchResourcePaths.index(indexName));
+        LowLevelSearchRequest request = getClient().newRequest(ElasticsearchKeywords.ACTION_PUT, ElasticsearchResourcePaths.index(indexName));
         request.setJsonEntity(json);
-        Response createIndexResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), indexName, "CREATE INDEX");
+        LowLevelSearchResponse createIndexResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), indexName, "CREATE INDEX");
 
         if (!isRequestSuccessful(createIndexResponse)) {
             throw buildExceptionFromUnsuccessfulResponse("Create index", createIndexResponse);
@@ -400,8 +400,8 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
     @Override
     public boolean isMappingExists(String index) throws ClientException {
         LOG.debug("Mapping exists - mapping name: '{}'", index);
-        Request request = new Request(ElasticsearchKeywords.ACTION_GET, ElasticsearchResourcePaths.mapping(index));
-        Response isMappingExistsResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), index, "MAPPING EXIST");
+        LowLevelSearchRequest request = getClient().newRequest(ElasticsearchKeywords.ACTION_GET, ElasticsearchResourcePaths.mapping(index));
+        LowLevelSearchResponse isMappingExistsResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), index, "MAPPING EXIST");
 
         if (isRequestSuccessful(isMappingExistsResponse)) {
             return true;
@@ -417,9 +417,9 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
         LOG.debug("Create mapping - object: '{}, index: {}", mapping, index);
 
         String json = writeRequestFromJsonNode(mapping);
-        Request request = new Request(ElasticsearchKeywords.ACTION_PUT, ElasticsearchResourcePaths.mapping(index));
+        LowLevelSearchRequest request = getClient().newRequest(ElasticsearchKeywords.ACTION_PUT, ElasticsearchResourcePaths.mapping(index));
         request.setJsonEntity(json);
-        Response createMappingResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), index, "PUT MAPPING");
+        LowLevelSearchResponse createMappingResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), index, "PUT MAPPING");
 
         if (!isRequestSuccessful(createMappingResponse)) {
             throw buildExceptionFromUnsuccessfulResponse("Create mapping", createMappingResponse);
@@ -429,8 +429,8 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
     @Override
     public void refreshAllIndexes() throws ClientException {
         LOG.debug("Refresh all indexes");
-        Request request = new Request(ElasticsearchKeywords.ACTION_POST, ElasticsearchResourcePaths.refreshAllIndexes());
-        Response refreshIndexResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), ElasticsearchKeywords.INDEX_ALL, "REFRESH INDEX");
+        LowLevelSearchRequest request = getClient().newRequest(ElasticsearchKeywords.ACTION_POST, ElasticsearchResourcePaths.refreshAllIndexes());
+        LowLevelSearchResponse refreshIndexResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), ElasticsearchKeywords.INDEX_ALL, "REFRESH INDEX");
 
         if (!isRequestSuccessful(refreshIndexResponse)) {
             throw buildExceptionFromUnsuccessfulResponse("Refresh all indexes", refreshIndexResponse);
@@ -440,8 +440,8 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
     @Override
     public void deleteAllIndexes() throws ClientException {
         LOG.debug("Delete all indexes");
-        Request request = new Request(ElasticsearchKeywords.ACTION_DELETE, ElasticsearchResourcePaths.index("_all"));
-        Response deleteIndexResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), ElasticsearchKeywords.INDEX_ALL, "DELETE INDEX");
+        LowLevelSearchRequest request = getClient().newRequest(ElasticsearchKeywords.ACTION_DELETE, ElasticsearchResourcePaths.index("_all"));
+        LowLevelSearchResponse deleteIndexResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), ElasticsearchKeywords.INDEX_ALL, "DELETE INDEX");
 
         if (!isRequestSuccessful(deleteIndexResponse)) {
             throw buildExceptionFromUnsuccessfulResponse("Delete all indexes", deleteIndexResponse);
@@ -453,8 +453,8 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
         LOG.debug("Delete indexes");
         for (String index : indexes) {
             LOG.debug("Delete index: {}", index);
-            Request request = new Request(ElasticsearchKeywords.ACTION_DELETE, ElasticsearchResourcePaths.index(index));
-            Response deleteIndexResponse = restCallTimeoutHandler(() -> {
+            LowLevelSearchRequest request = getClient().newRequest(ElasticsearchKeywords.ACTION_DELETE, ElasticsearchResourcePaths.index(index));
+            LowLevelSearchResponse deleteIndexResponse = restCallTimeoutHandler(() -> {
                 LOG.debug("Deleting index: {}", index);
                 return getClient().performRequest(request);
             }, index, "DELETE INDEX");
@@ -471,7 +471,7 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
         }
     }
 
-    private Response restCallTimeoutHandler(Callable<Response> restAction, String index, String operationName) throws ClientException {
+    private LowLevelSearchResponse restCallTimeoutHandler(Callable<LowLevelSearchResponse> restAction, String index, String operationName) throws ClientException {
         int retryCount = 0;
         try {
             do {
@@ -493,8 +493,8 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
                 }
             } while (++retryCount <= getClientConfiguration().getRequestConfiguration().getRequestRetryAttemptMax());
 
-        } catch (ResponseException responseException) {
-            LOG.warn("Elasticsearch Response with code {} for on index {} while performing {}. Follows stacktrace.", responseException.getResponse().getStatusLine().getStatusCode(), index, operationName, responseException);
+        } catch (LowLevelSearchResponseException responseException) {
+            LOG.warn("Elasticsearch Response with code {} for on index {} while performing {}. Follows stacktrace.", responseException.getResponse().getStatusCode(), index, operationName, responseException);
             return responseException.getResponse();
         } catch (Exception e) {
             throw new ClientInternalError(e, "Error in handling REST timeout handler");
@@ -505,18 +505,14 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
     }
 
     /**
-     * Checks if the given {@link Response#getStatusLine} as a HTTP 2xx code.
+     * Checks if the given {@link LowLevelSearchResponse#getStatusCode()} is a HTTP 2xx code.
      *
-     * @param response The {@link Response} to check.
-     * @return {@code true} if {@link Response#getStatusLine()} has a 2xx HTTP code, {@code false} otherwise.
+     * @param response The {@link LowLevelSearchResponse} to check.
+     * @return {@code true} if {@link LowLevelSearchResponse#getStatusCode()} is a 2xx HTTP code, {@code false} otherwise.
      * @since 1.0.0
      */
-    private boolean isRequestSuccessful(@NotNull Response response) {
-        if (response.getStatusLine() != null) {
-            return isRequestSuccessful(response.getStatusLine().getStatusCode());
-        } else {
-            return false;
-        }
+    private boolean isRequestSuccessful(@NotNull LowLevelSearchResponse response) {
+        return isRequestSuccessful(response.getStatusCode());
     }
 
     /**
@@ -531,18 +527,14 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
     }
 
     /**
-     * Checks if the given {@link Response#getStatusLine} as a HTTP 400 code.
+     * Checks if the given {@link LowLevelSearchResponse#getStatusCode()} is a HTTP 400 code.
      *
-     * @param response The {@link Response} to check.
-     * @return {@code true} if {@link Response#getStatusLine()} has a 400 HTTP code, {@code false} otherwise.
+     * @param response The {@link LowLevelSearchResponse} to check.
+     * @return {@code true} if {@link LowLevelSearchResponse#getStatusCode()} is a 400 HTTP code, {@code false} otherwise.
      * @since 1.3.0
      */
-    private boolean isRequestBadRequest(@NotNull Response response) {
-        if (response.getStatusLine() != null) {
-            return isRequestBadRequest(response.getStatusLine().getStatusCode());
-        } else {
-            return false;
-        }
+    private boolean isRequestBadRequest(@NotNull LowLevelSearchResponse response) {
+        return isRequestBadRequest(response.getStatusCode());
     }
 
     /**
@@ -558,18 +550,14 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
 
 
     /**
-     * Checks if the given {@link Response#getStatusLine} as a HTTP 404 code.
+     * Checks if the given {@link LowLevelSearchResponse#getStatusCode()} is a HTTP 404 code.
      *
-     * @param response The {@link Response} to check.
-     * @return {@code true} if {@link Response#getStatusLine()} has a 404 HTTP code, {@code false} otherwise.
+     * @param response The {@link LowLevelSearchResponse} to check.
+     * @return {@code true} if {@link LowLevelSearchResponse#getStatusCode()} is a 404 HTTP code, {@code false} otherwise.
      * @since 1.3.0
      */
-    private boolean isRequestNotFound(@NotNull Response response) {
-        if (response.getStatusLine() != null) {
-            return isRequestNotFound(response.getStatusLine().getStatusCode());
-        } else {
-            return false;
-        }
+    private boolean isRequestNotFound(@NotNull LowLevelSearchResponse response) {
+        return isRequestNotFound(response.getStatusCode());
     }
 
     /**
@@ -584,32 +572,18 @@ public class RestElasticsearchClient extends AbstractElasticsearchClient<RestCli
     }
 
     /**
-     * Builds a {@link ClientActionResponseException} from the {@link Response} trying to get the reason from it.
+     * Builds a {@link ClientActionResponseException} from the {@link LowLevelSearchResponse} trying to get the reason from it.
      *
      * @param action   The action that was performed
-     * @param response The {@link Response} from Elasticsearch
+     * @param response The {@link LowLevelSearchResponse} from Elasticsearch
      * @return The {@link ClientActionResponseException} to throw.
      * @since 1.3.0
      */
-    private ClientException buildExceptionFromUnsuccessfulResponse(@NotNull String action, @NotNull Response response) {
-        String reason;
-        if (response.getStatusLine() != null) {
-            reason = response.getStatusLine().getReasonPhrase();
-        } else {
-            reason = "Unknown. Cannot get the reason from Response";
-        }
-
-        String responseCodeString;
-        if (response.getStatusLine() != null) {
-            responseCodeString = String.valueOf(response.getStatusLine().getStatusCode());
-        } else {
-            responseCodeString = "Unknown";
-        }
-
-        return new ClientActionResponseException(action, reason, responseCodeString);
+    private ClientException buildExceptionFromUnsuccessfulResponse(@NotNull String action, @NotNull LowLevelSearchResponse response) {
+        return new ClientActionResponseException(action, response.getReasonPhrase(), String.valueOf(response.getStatusCode()));
     }
 
-    private JsonNode readResponseAsJsonNode(@NotNull Response response) throws ResponseEntityReadError {
+    private JsonNode readResponseAsJsonNode(@NotNull LowLevelSearchResponse response) throws ResponseEntityReadError {
         try {
             return objectMapper.readTree(EntityUtils.toString(response.getEntity()));
         } catch (IOException e) {

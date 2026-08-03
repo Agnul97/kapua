@@ -148,7 +148,13 @@ public enum DatastoreElasticsearchClientSettingsKey implements SettingKey {
      *
      * @since 2.1.0
      */
-    REQUEST_SOCKET_TIMEOUT_MILLIS("datastore.elasticsearch.request.socket.timeout.millis");
+    REQUEST_SOCKET_TIMEOUT_MILLIS("datastore.elasticsearch.request.socket.timeout.millis"),
+    /**
+     * The search engine the low-level REST client talks to. Either {@code elasticsearch} or {@code opensearch}.
+     *
+     * @since 2.1.0
+     */
+    CLIENT_ENGINE("datastore.elasticsearch.client.engine");
 
     /**
      * The key value in the configuration resources.

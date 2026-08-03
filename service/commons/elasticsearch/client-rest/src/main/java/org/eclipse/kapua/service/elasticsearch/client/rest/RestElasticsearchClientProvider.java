@@ -59,10 +59,11 @@ import org.eclipse.kapua.service.elasticsearch.client.configuration.Elasticsearc
 import org.eclipse.kapua.service.elasticsearch.client.exception.ClientInitializationException;
 import org.eclipse.kapua.service.elasticsearch.client.exception.ClientProviderInitException;
 import org.eclipse.kapua.service.elasticsearch.client.exception.ClientUnavailableException;
+import org.eclipse.kapua.service.elasticsearch.client.rest.lowlevel.LowLevelSearchClient;
+import org.eclipse.kapua.service.elasticsearch.client.rest.lowlevel.LowLevelSearchClientBuilder;
+import org.eclipse.kapua.service.elasticsearch.client.rest.lowlevel.LowLevelSearchClientBuilderFactory;
 import org.eclipse.kapua.service.elasticsearch.client.rest.ssl.SkipCertificateCheckTrustStrategy;
 import org.eclipse.kapua.service.elasticsearch.client.utils.InetAddressParser;
-import org.opensearch.client.RestClient;
-import org.opensearch.client.RestClientBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,7 +84,7 @@ public class RestElasticsearchClientProvider implements ElasticsearchClientProvi
     private static final String PROVIDER_CANNOT_CLOSE_CLIENT_MSG = "Cannot close ElasticSearch REST client. Client is already closed or not initialized";
 
     private RestElasticsearchClient restElasticsearchClient;
-    private RestClient internalElasticsearchRestClient;
+    private LowLevelSearchClient internalElasticsearchRestClient;
 
     private ElasticsearchClientConfiguration elasticsearchClientConfiguration;
     private ModelContext modelContext;
@@ -91,12 +92,14 @@ public class RestElasticsearchClientProvider implements ElasticsearchClientProvi
 
     private ScheduledExecutorService reconnectExecutorTask;
 
-    private MetricsEsClient metrics;
+    private final MetricsEsClient metrics;
+    private final LowLevelSearchClientBuilderFactory lowLevelSearchClientBuilderFactory;
     private boolean initialized;
 
     @Inject
-    public RestElasticsearchClientProvider(MetricsEsClient metricsEsClient) {
+    public RestElasticsearchClientProvider(MetricsEsClient metricsEsClient, LowLevelSearchClientBuilderFactory lowLevelSearchClientBuilderFactory) {
         this.metrics = metricsEsClient;
+        this.lowLevelSearchClientBuilderFactory = lowLevelSearchClientBuilderFactory;
     }
 
     @Override
@@ -193,7 +196,7 @@ public class RestElasticsearchClientProvider implements ElasticsearchClientProvi
     /**
      * Closes the {@link RestElasticsearchClientProvider}.
      * <p>
-     * It takes care of closing the {@link RestClient}.
+     * It takes care of closing the {@link LowLevelSearchClient}.
      *
      * @since 1.0.0
      */
@@ -209,12 +212,12 @@ public class RestElasticsearchClientProvider implements ElasticsearchClientProvi
     }
 
     /**
-     * Closes the {@link RestClient}.
+     * Closes the {@link LowLevelSearchClient}.
      * <p>
      * It takes care of stopping the {@link #reconnectExecutorTask}.
      *
      * @throws IOException
-     *         see {@link RestClient#close()} javadoc.
+     *         see {@link LowLevelSearchClient#close()} javadoc.
      * @since 1.0.0
      */
     private void closeClient() throws IOException {
@@ -242,15 +245,15 @@ public class RestElasticsearchClientProvider implements ElasticsearchClientProvi
     }
 
     /**
-     * The {@link Callable} that connects (and reconnects) the {@link RestClient}.
+     * The {@link Callable} that connects (and reconnects) the {@link LowLevelSearchClient}.
      *
      * @param initClientMethod
-     *         The {@link Callable} that connects (and reconnects) the {@link RestClient}.
+     *         The {@link Callable} that connects (and reconnects) the {@link LowLevelSearchClient}.
      * @throws Exception
      *         if the given {@link Callable} throws {@link Exception}.
      * @since 1.0.0
      */
-    private void reconnectClientTask(Callable<RestClient> initClientMethod) throws Exception {
+    private void reconnectClientTask(Callable<LowLevelSearchClient> initClientMethod) throws Exception {
         if (internalElasticsearchRestClient == null) {
             synchronized (RestElasticsearchClientProvider.class) {
                 if (internalElasticsearchRestClient == null) {
@@ -265,14 +268,14 @@ public class RestElasticsearchClientProvider implements ElasticsearchClientProvi
     }
 
     /**
-     * Initializes the {@link RestClient} as per {@link ElasticsearchClientConfiguration}.
+     * Initializes the {@link LowLevelSearchClient} as per {@link ElasticsearchClientConfiguration}.
      *
-     * @return The initialized {@link RestClient}.
+     * @return The initialized {@link LowLevelSearchClient}.
      * @throws ClientInitializationException
-     *         if any {@link Exception} occurs while {@link RestClient} initialization.
+     *         if any {@link Exception} occurs while {@link LowLevelSearchClient} initialization.
      * @since 1.0.0
      */
-    private RestClient initClient() throws ClientInitializationException {
+    private LowLevelSearchClient initClient() throws ClientInitializationException {
 
         ElasticsearchClientConfiguration clientConfiguration = getClientConfiguration();
 
@@ -322,7 +325,7 @@ public class RestElasticsearchClientProvider implements ElasticsearchClientProvi
         }
 
         // Init internal Elasticsearch client
-        RestClientBuilder restClientBuilder = RestClient.builder(hosts.toArray(new HttpHost[0]));
+        LowLevelSearchClientBuilder restClientBuilder = lowLevelSearchClientBuilderFactory.builder(hosts.toArray(new HttpHost[0]));
         SSLContext sslContext = null;
         if (sslEnabled) {
             try {
@@ -355,7 +358,7 @@ public class RestElasticsearchClientProvider implements ElasticsearchClientProvi
                     clientConfiguration.getRequestConfiguration().getSocketTimeoutMillis().ifPresent(timout -> requestConfigBuilder.setSocketTimeout(timout));
                     return requestConfigBuilder;
                 });
-        RestClient restClient = restClientBuilder.build();
+        LowLevelSearchClient restClient = restClientBuilder.build();
 
         // Init Kapua Elasticsearch Client
         restElasticsearchClient = new RestElasticsearchClient(metrics);
