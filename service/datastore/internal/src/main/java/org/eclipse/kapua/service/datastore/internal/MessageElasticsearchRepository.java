@@ -46,6 +46,7 @@ import java.util.stream.Collectors;
 public class MessageElasticsearchRepository extends DatastoreElasticSearchRepositoryBase<DatastoreMessage, MessageListResult, MessageQuery> implements MessageRepository {
     private final DatastoreUtils datastoreUtils;
     private final LocalCache<String, Map<String, Metric>> metricsByIndex;
+    private final Object metadataUpdateSync = new Object();
 
     @Inject
     public MessageElasticsearchRepository(
@@ -111,8 +112,12 @@ public class MessageElasticsearchRepository extends DatastoreElasticSearchReposi
         // update, never to a skipped one.
         final Map<String, Metric> knownMetrics = metricsByIndex.get(indexName);
         if (knownMetrics == null || !knownMetrics.keySet().containsAll(metrics.keySet())) {
-            // Same monitor as ElasticsearchRepository.synchIndex(): it also prevents concurrent index creations.
-            synchronized (DatastoreMessage.class) {
+            // Dedicated monitor, so that mapping updates do not serialize against the index synchronization performed
+            // by the read paths through ElasticsearchRepository.synchIndex(). As a consequence doUpsertIndex() can now
+            // run concurrently with synchIndex() within this JVM, which Elasticsearch may reject with a
+            // 'resource_already_exists_exception'. That is already possible across JVMs and is meant to be addressed by
+            // making the index creation idempotent.
+            synchronized (metadataUpdateSync) {
                 // Read again under the lock: the entry may have been evicted or written by another thread since.
                 final Map<String, Metric> currentMetrics = metricsByIndex.get(indexName);
                 if (currentMetrics == null) {
