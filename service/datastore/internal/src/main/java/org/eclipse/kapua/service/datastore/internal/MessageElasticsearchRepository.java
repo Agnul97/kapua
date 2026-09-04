@@ -40,6 +40,7 @@ import org.eclipse.kapua.service.storable.model.utils.MappingUtils;
 import javax.inject.Inject;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class MessageElasticsearchRepository extends DatastoreElasticSearchRepositoryBase<DatastoreMessage, MessageListResult, MessageQuery> implements MessageRepository {
@@ -105,16 +106,26 @@ public class MessageElasticsearchRepository extends DatastoreElasticSearchReposi
 
         final String indexName = indexResolver(messageToStore.getScopeId(), messageTime);
 
-        synchronized (DatastoreMessage.class) {
-            if (!metricsByIndex.containsKey(indexName)) {
-                doUpsertIndex(indexName);
-                doUpsertMappings(indexName, metrics);
-                metricsByIndex.put(indexName, metrics);
-            } else {
-                final Map<String, Metric> newMetrics = getMessageMappingDiffs(metricsByIndex.get(indexName), metrics);
-                if (newMetrics != null && !newMetrics.isEmpty()) {
+        // Fast path, deliberately not synchronized: the cached map is only ever added to, and only after the matching
+        // mapping update succeeded, so a stale or partial read can only under-report. That leads to a redundant mapping
+        // update, never to a skipped one.
+        final Map<String, Metric> knownMetrics = metricsByIndex.get(indexName);
+        if (knownMetrics == null || !knownMetrics.keySet().containsAll(metrics.keySet())) {
+            // Same monitor as ElasticsearchRepository.synchIndex(): it also prevents concurrent index creations.
+            synchronized (DatastoreMessage.class) {
+                // Read again under the lock: the entry may have been evicted or written by another thread since.
+                final Map<String, Metric> currentMetrics = metricsByIndex.get(indexName);
+                if (currentMetrics == null) {
+                    doUpsertIndex(indexName);
                     doUpsertMappings(indexName, metrics);
-                    metricsByIndex.get(indexName).putAll(newMetrics);
+                    metricsByIndex.put(indexName, new ConcurrentHashMap<>(metrics));
+                } else {
+                    final Map<String, Metric> newMetrics = getMessageMappingDiffs(currentMetrics, metrics);
+                    if (!newMetrics.isEmpty()) {
+                        // Only the metrics that are not mapped yet are sent: the cached ones are already in Elasticsearch.
+                        doUpsertMappings(indexName, newMetrics);
+                        currentMetrics.putAll(newMetrics);
+                    }
                 }
             }
         }
