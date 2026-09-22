@@ -390,17 +390,13 @@ public class AccountServiceImpl
         ArgumentValidator.notNull(query, "query");
 
         if (query.getScopeId() == null) {
-            AccountListResult accountListResult = txManager.execute(tx -> accountRepository.query(tx, query));
-            for (Account account : accountListResult.getItems()) {
-                checkAccountPermission(account.getScopeId(), account.getId(), Actions.read);
-            }
-            return accountListResult;
+            authorizationService.checkPermission(permissionFactory.newPermission(Domains.ACCOUNT, Actions.read, KapuaId.ONE, null, true));
         } else {
             // Check Access
             authorizationService.checkPermission(permissionFactory.newPermission(Domains.ACCOUNT, Actions.read, query.getScopeId()));
-            // Do query
-            return txManager.execute(tx -> accountRepository.query(tx, query));
         }
+        // Do query
+        return txManager.execute(tx -> accountRepository.query(tx, query));
     }
 
     @Override
