@@ -786,7 +786,7 @@ Feature: Device Registry Integration
     And The device matches the creator parameters
     Then I logout
     Given I expect the exception "MqttSecurityException" with the text "Not authorized to connect"
-    When Client with name "dev-123" with client id "dev-123" user "kapua-broker" password "kapua-password" is connected
+    When Client with name "dev-123" with client id "dev-123" user "kapua-broker" password "Kapua-password123!" is connected
     Then An exception was thrown
 
   Scenario: Create a Device with 'status' set to 'ENABLED'
@@ -820,7 +820,7 @@ Feature: Device Registry Integration
     Then No exception was thrown
     And The device matches the creator parameters
     Then I logout
-    When Client with name "dev-12" with client id "dev-12" user "kapua-broker" password "kapua-password" is connected
+    When Client with name "dev-12" with client id "dev-12" user "kapua-broker" password "Kapua-password123!" is connected
     Then No exception was thrown
 
   Scenario: Update a Device 'status' to 'ENABLED'

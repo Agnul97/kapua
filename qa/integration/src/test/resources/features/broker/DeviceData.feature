@@ -24,7 +24,7 @@ Feature: Device data scenarios
   Scenario: Connect to the system and publish some data
 
     Given The account name is "kapua-sys" and the client ID is "sim-1"
-    And The broker URI is "tcp://kapua-broker:kapua-password@localhost:1883"
+    And The broker URI is "tcp://kapua-broker:Kapua-password123!@localhost:1883"
     And My credentials are username "kapua-sys" and password "kapua-password"
     And I have a mock data application named "my-app-1"
 

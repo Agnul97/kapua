@@ -112,7 +112,7 @@ public class KuraDevice implements MqttCallback {
     /**
      * Mocked Kura device password while connecting to Cloud service.
      */
-    private static final String DEFAULT_CLIENT_PASSWORD = "kapua-password";
+    private static final String DEFAULT_CLIENT_PASSWORD = "Kapua-password123!";
 
     /**
      * User under which Kura device is listening for messages.

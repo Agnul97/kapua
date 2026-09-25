@@ -40,7 +40,7 @@ public class KapuaStartCluster {
         String adminClientId = "admin-test-client";
         MqttClient adminClient = connect(adminClientId, "kapua-sys", "kapua-password");
         String clientId = "test-client";
-        MqttClient client = connect(clientId, "kapua-broker", "kapua-password");
+        MqttClient client = connect(clientId, "kapua-broker", "Kapua-password123!");
         int loopCount = 0;
         while(loopCount++<MAX_LOOP) {
             sendMessageBirth(client, "kapua-sys", 0);

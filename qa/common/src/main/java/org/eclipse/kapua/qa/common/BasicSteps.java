@@ -14,6 +14,7 @@
 package org.eclipse.kapua.qa.common;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Map;
 import javax.inject.Inject;
@@ -26,6 +27,7 @@ import org.eclipse.kapua.commons.setting.system.SystemSetting;
 import org.eclipse.kapua.commons.setting.system.SystemSettingKey;
 import org.eclipse.kapua.commons.util.KapuaDateUtils;
 import org.eclipse.kapua.locator.KapuaLocator;
+import org.eclipse.kapua.model.domain.Actions;
 import org.eclipse.kapua.qa.common.cucumber.CucAccount;
 import org.eclipse.kapua.qa.common.cucumber.CucConfig;
 import org.eclipse.kapua.qa.common.cucumber.CucConnection;
@@ -44,8 +46,19 @@ import org.eclipse.kapua.qa.common.cucumber.CucTopic;
 import org.eclipse.kapua.qa.common.cucumber.CucTriggerProperty;
 import org.eclipse.kapua.qa.common.cucumber.CucUser;
 import org.eclipse.kapua.qa.common.cucumber.CucUserProfile;
+import org.eclipse.kapua.service.authentication.credential.CredentialFactory;
+import org.eclipse.kapua.service.authentication.credential.CredentialService;
+import org.eclipse.kapua.service.authentication.credential.CredentialStatus;
+import org.eclipse.kapua.service.authorization.access.AccessInfoCreator;
+import org.eclipse.kapua.service.authorization.access.AccessInfoFactory;
+import org.eclipse.kapua.service.authorization.access.AccessInfoService;
+import org.eclipse.kapua.service.authorization.permission.PermissionFactory;
 import org.eclipse.kapua.service.datastore.internal.setting.DatastoreElasticsearchClientSettings;
 import org.eclipse.kapua.service.datastore.internal.setting.DatastoreElasticsearchClientSettingsKey;
+import org.eclipse.kapua.service.user.User;
+import org.eclipse.kapua.service.user.UserCreator;
+import org.eclipse.kapua.service.user.UserFactory;
+import org.eclipse.kapua.service.user.UserService;
 import org.eclipse.kapua.transport.message.jms.JmsTopic;
 import org.junit.Assert;
 import org.slf4j.Logger;
@@ -92,12 +105,14 @@ public class BasicSteps extends TestBase {
     private static final String ASSERT_ERROR_NAME = "AssertErrorName";
     private static final String ASSERT_ERROR_CAUGHT = "AssertErrorCaught";
 
+    private static final String KAPUA_BROKER_USERNAME = "kapua-broker";
+    private static final String KAPUA_BROKER_PASSWORD = "Kapua-password123!";
+
     private final DBHelper database;
 
     @Inject
     public BasicSteps(StepData stepData, DBHelper database) {
         super(stepData);
-
         this.database = database;
     }
 
@@ -156,6 +171,44 @@ public class BasicSteps extends TestBase {
     @After(value = "@env_docker_base and @setup", order = 0)
     public void afterScenarioDockerBaseSetup(Scenario scenario) {
         databaseInit();
+    }
+
+    /**
+     * Seeds the "kapua-broker" user in the "kapua-sys" account with "broker:connect" permission, so that the tests can connect to the broker.
+     * <p>
+     * After hooks with lower order run later: order -1 makes this run after {@link #afterScenarioDockerBaseSetup(Scenario)} has initialized the database.
+     */
+    @After(value = "@setup and (@env_docker or @env_docker_base)", order = -1)
+    public void afterScenarioDockerBaseSetupSeedKapuaBroker(Scenario scenario) throws Exception {
+        KapuaLocator locator = KapuaLocator.getInstance();
+        UserService userService = locator.getService(UserService.class);
+        UserFactory userFactory = locator.getFactory(UserFactory.class);
+        CredentialService credentialService = locator.getService(CredentialService.class);
+        CredentialFactory credentialFactory = locator.getFactory(CredentialFactory.class);
+        AccessInfoService accessInfoService = locator.getService(AccessInfoService.class);
+        AccessInfoFactory accessInfoFactory = locator.getFactory(AccessInfoFactory.class);
+        PermissionFactory permissionFactory = locator.getFactory(PermissionFactory.class);
+
+        logger.info("Seeding {} user...", KAPUA_BROKER_USERNAME);
+        KapuaSecurityUtils.doPrivileged(() -> {
+            if (userService.findByName(KAPUA_BROKER_USERNAME) != null) {
+                logger.info("Seeding {} user... SKIPPED (already present)", KAPUA_BROKER_USERNAME);
+                return;
+            }
+
+            UserCreator userCreator = userFactory.newCreator(SYS_SCOPE_ID, KAPUA_BROKER_USERNAME);
+            userCreator.setDisplayName(KAPUA_BROKER_USERNAME);
+            User user = userService.create(userCreator);
+
+            credentialService.create(credentialFactory.newCreator(SYS_SCOPE_ID, user.getId(), "PASSWORD", KAPUA_BROKER_PASSWORD, CredentialStatus.ENABLED, null));
+
+            AccessInfoCreator accessInfoCreator = accessInfoFactory.newCreator(SYS_SCOPE_ID);
+            accessInfoCreator.setUserId(user.getId());
+            accessInfoCreator.setPermissions(Collections.singleton(permissionFactory.newPermission("broker", Actions.connect, SYS_SCOPE_ID)));
+            accessInfoService.create(accessInfoCreator);
+
+            logger.info("Seeding {} user... DONE", KAPUA_BROKER_USERNAME);
+        });
     }
 
     @After(value = "(@env_docker or @env_docker_base) and not (@setup or @teardown)", order = 0)
