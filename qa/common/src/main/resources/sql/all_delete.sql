@@ -11,6 +11,11 @@
  *     Eurotech - initial API and implementation
  *******************************************************************************/
 
+-- Ids of the "kapua-broker" user seeded by the tests (see BasicSteps), to preserve it across scenarios.
+-- COALESCE to 0 (never a valid id) so that, if the user is missing, the conditions below don't evaluate to NULL and skip deletes.
+SET @kapua_broker_user_id = COALESCE((SELECT id FROM usr_user WHERE scope_id = 1 AND name = 'kapua-broker'), 0);
+SET @kapua_broker_access_info_id = COALESCE((SELECT id FROM athz_access_info WHERE scope_id = 1 AND user_id = @kapua_broker_user_id), 0);
+
 UPDATE act_account SET scope_id = null;
 
 DELETE
@@ -19,7 +24,7 @@ WHERE id NOT IN (1);
 
 DELETE
 FROM atht_credential
-WHERE NOT (scope_id = 1 AND (id IN (1, 2) OR user_id IN (SELECT id FROM usr_user WHERE scope_id = 1 AND name = 'kapua-broker')));
+WHERE NOT (scope_id = 1 AND (id IN (1, 2) OR user_id = @kapua_broker_user_id));
 
 DELETE
 FROM atht_access_token;
@@ -53,15 +58,15 @@ WHERE NOT (scope_id = 1 AND id IN (1, 2, 3, 4, 5, 6, 7, 8, 9));
 
 DELETE
 FROM usr_user
-WHERE NOT (scope_id = 1 AND (id = 1 OR name = 'kapua-broker'));
+WHERE NOT (scope_id = 1 AND id IN (1, @kapua_broker_user_id));
 
 DELETE
 FROM athz_access_info
-WHERE NOT (scope_id = 1 AND (id = 1 OR user_id IN (SELECT id FROM usr_user WHERE scope_id = 1 AND name = 'kapua-broker')));
+WHERE NOT (scope_id = 1 AND id IN (1, @kapua_broker_access_info_id));
 
 DELETE
 FROM athz_access_permission
-WHERE NOT (scope_id = 1 AND (id = 1 OR access_info_id IN (SELECT id FROM athz_access_info WHERE scope_id = 1 AND user_id IN (SELECT id FROM usr_user WHERE scope_id = 1 AND name = 'kapua-broker'))));
+WHERE NOT (scope_id = 1 AND (id = 1 OR access_info_id = @kapua_broker_access_info_id));
 
 DELETE
 FROM athz_access_role
