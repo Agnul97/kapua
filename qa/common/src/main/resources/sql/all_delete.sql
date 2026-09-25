@@ -19,7 +19,7 @@ WHERE id NOT IN (1);
 
 DELETE
 FROM atht_credential
-WHERE NOT (scope_id = 1 AND id IN (1, 2, 3));
+WHERE NOT (scope_id = 1 AND (id IN (1, 2) OR user_id IN (SELECT id FROM usr_user WHERE scope_id = 1 AND name = 'kapua-broker')));
 
 DELETE
 FROM atht_access_token;
@@ -53,15 +53,15 @@ WHERE NOT (scope_id = 1 AND id IN (1, 2, 3, 4, 5, 6, 7, 8, 9));
 
 DELETE
 FROM usr_user
-WHERE NOT (scope_id = 1 AND id IN (1, 2));
+WHERE NOT (scope_id = 1 AND (id = 1 OR name = 'kapua-broker'));
 
 DELETE
 FROM athz_access_info
-WHERE NOT (scope_id = 1 AND id IN (1, 2));
+WHERE NOT (scope_id = 1 AND (id = 1 OR user_id IN (SELECT id FROM usr_user WHERE scope_id = 1 AND name = 'kapua-broker')));
 
 DELETE
 FROM athz_access_permission
-WHERE NOT (scope_id = 1 AND id = 1);
+WHERE NOT (scope_id = 1 AND (id = 1 OR access_info_id IN (SELECT id FROM athz_access_info WHERE scope_id = 1 AND user_id IN (SELECT id FROM usr_user WHERE scope_id = 1 AND name = 'kapua-broker'))));
 
 DELETE
 FROM athz_access_role

@@ -47,19 +47,19 @@ Feature: Device Broker Integration
 
   Scenario: Test the stealing link handling with multiple clients connecting at the same time
 
-    When I prepare 10 clients with "client-stealing-link" as client id in a pool called "stealing" with username "kapua-broker" password "kapua-password" and brokerUrl "tcp://localhost:1883" and if connected disconnect after 5 seconds
+    When I prepare 10 clients with "client-stealing-link" as client id in a pool called "stealing" with username "kapua-broker" password "Kapua-password123!" and brokerUrl "tcp://localhost:1883" and if connected disconnect after 5 seconds
     And I connect the pool called "stealing"
     Then Only 1 client of the pool called "stealing" is still connected within 10 seconds
 
   Scenario: Test the forced disconnection of a connected device
     #repeat couple of times to be sure the event messages are received correctly by all the different subscribers group
 
-    Given Client with name "client-disc-1" with client id "client-disc-1" user "kapua-broker" password "kapua-password" is connected
+    Given Client with name "client-disc-1" with client id "client-disc-1" user "kapua-broker" password "Kapua-password123!" is connected
     Then Check device "client-disc-1" connection reports is connected within 5 seconds
     When I Force Disconnect connection with client id "client-disc-1"
     Then Check device "client-disc-1" connection reports is disconnected within 5 seconds
     And Client named "client-disc-1" is not connected
-    Given Client with name "client-disc-2" with client id "client-disc-2" user "kapua-broker" password "kapua-password" is connected
+    Given Client with name "client-disc-2" with client id "client-disc-2" user "kapua-broker" password "Kapua-password123!" is connected
     Then Check device "client-disc-2" connection reports is connected within 5 seconds
     When I Force Disconnect connection with client id "client-disc-2"
     Then Check device "client-disc-2" connection reports is disconnected within 5 seconds
