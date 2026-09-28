@@ -344,7 +344,8 @@ public class BasicSteps extends TestBase {
                 entry.get("domain"),
                 Util.parseAction(entry.get("action")),
                 Util.parseInteger(entry.get("targetScope")),
-                Util.parseKapuaId(entry.get("targetScopeId"))
+                Util.parseKapuaId(entry.get("targetScopeId")),
+                Util.parseBoolean(entry.get("forwardable"))
         );
     }
 
