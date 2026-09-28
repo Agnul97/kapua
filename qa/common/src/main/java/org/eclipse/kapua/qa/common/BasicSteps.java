@@ -105,8 +105,8 @@ public class BasicSteps extends TestBase {
     private static final String ASSERT_ERROR_NAME = "AssertErrorName";
     private static final String ASSERT_ERROR_CAUGHT = "AssertErrorCaught";
 
-    private static final String KAPUA_BROKER_USERNAME = "kapua-broker";
-    private static final String KAPUA_BROKER_PASSWORD = "Kapua-password123!";
+    public static final String KAPUA_BROKER_USERNAME = "kapua-broker";
+    public static final String KAPUA_BROKER_PASSWORD = "Kapua-password123!"; //Due to checks on password validity on credential service, we cannot use the old "kapua-password"
 
     private final DBHelper database;
 
@@ -176,7 +176,7 @@ public class BasicSteps extends TestBase {
     /**
      * Seeds the "kapua-broker" user in the "kapua-sys" account with "broker:connect" permission, so that the tests can connect to the broker.
      * <p>
-     * After hooks with lower order run later: order -1 makes this run after {@link #afterScenarioDockerBaseSetup(Scenario)} has initialized the database.
+     * Order -1 makes this run after {@link #afterScenarioDockerBaseSetup(Scenario)} has initialized the database.
      */
     @After(value = "@setup and (@env_docker or @env_docker_base)", order = -1)
     public void afterScenarioDockerBaseSetupSeedKapuaBroker(Scenario scenario) throws Exception {

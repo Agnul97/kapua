@@ -14,6 +14,7 @@ package org.eclipse.kapua.service.device.registry.steps;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.eclipse.kapua.kura.simulator.proto.KuraPayloadProto;
+import org.eclipse.kapua.qa.common.BasicSteps;
 import org.eclipse.kapua.qa.common.Suppressed;
 import org.eclipse.kapua.service.device.call.message.kura.KuraPayload;
 import org.eclipse.kapua.service.device.call.message.kura.app.request.KuraRequestPayload;
@@ -107,12 +108,12 @@ public class KuraDevice implements MqttCallback {
     /**
      * User with which Mocked Kura device is connecting to Cloud service.
      */
-    private static final String DEFAULT_CLIENT_USER = "kapua-broker";
+    private static final String DEFAULT_CLIENT_USER = BasicSteps.KAPUA_BROKER_USERNAME;
 
     /**
      * Mocked Kura device password while connecting to Cloud service.
      */
-    private static final String DEFAULT_CLIENT_PASSWORD = "Kapua-password123!";
+    private static final String DEFAULT_CLIENT_PASSWORD = BasicSteps.KAPUA_BROKER_PASSWORD;
 
     /**
      * User under which Kura device is listening for messages.
