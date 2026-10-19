@@ -13,14 +13,16 @@
 ###############################################################################
 @datastore
 @datastoreNewIndexCustomPrefix
-@env_docker
+@env_docker_base
 
 Feature: Datastore tests
 
   @setup
-  Scenario: Start full docker environment
+  Scenario: Setup test resources
     Given Init Security Context
-    And Start full docker environment
+    And Start Docker environment with resources
+      | db |
+      | es |
 
   Scenario: Create index with specific prefix
   Create elasticsearch index with specific prefix set by system property.

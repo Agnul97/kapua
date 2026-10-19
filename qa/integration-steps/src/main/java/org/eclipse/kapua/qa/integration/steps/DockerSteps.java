@@ -303,6 +303,9 @@ public class DockerSteps {
                 case "consumer-lifecycle": {
                     startLifecycleConsumerContainer(BasicSteps.LIFECYCLE_CONSUMER_CONTAINER_NAME);
                 } break;
+                case "consumer-telemetry" : {
+                    startTelemetryConsumerContainer(BasicSteps.TELEMETRY_CONSUMER_CONTAINER_NAME);
+                } break;
                 default:
                     throw new UnsupportedOperationException("Unknown container resource: " + dockerContainer);
             }
@@ -324,6 +327,8 @@ public class DockerSteps {
                 } break;
                 case "consumer-lifecycle": {
                     waitLifecycleConsumerContainer(BasicSteps.LIFECYCLE_CONSUMER_CONTAINER_NAME);
+                } break;
+                case "consumer-telemetry" : {
                 } break;
                 default:
                     throw new UnsupportedOperationException("Unknown container resource: " + dockerContainer);

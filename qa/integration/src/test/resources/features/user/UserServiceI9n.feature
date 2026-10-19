@@ -18,9 +18,10 @@ Feature: User Service Integration
   User Service integration scenarios
 
   @setup
-  Scenario: Initialize test environment
+  Scenario: Setup test resources
     Given Init Security Context
-    And Start base docker environment
+    And Start Docker environment with resources
+      | db |
 
   Scenario: Deleting user in account that is lower in hierarchy
   Using user A in in different scope than user B, try to delete user B. Scope of user A is one

@@ -11,16 +11,20 @@
 #     Eurotech - initial API and implementation
 ###############################################################################
 @deviceRegistry
-@env_docker
+@env_docker_base
 
 Feature: Device Registry Integration
   Device Registry integration test scenarios. These scenarios test higher level device service functionality
   with all services live.
 
   @setup
-  Scenario: Start full docker environment
+  Scenario: Setup test resources
     Given Init Security Context
-    And Start full docker environment
+    And Start Docker environment with resources
+      | db                  |
+      | events-broker       |
+      | message-broker      |
+      | broker-auth-service |
 
   #
   # Device lifecycle
