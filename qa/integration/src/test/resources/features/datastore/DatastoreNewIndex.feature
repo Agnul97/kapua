@@ -13,14 +13,16 @@
 ###############################################################################
 @datastore
 @datastoreNewIndex
-@env_docker
+@env_docker_base
 
 Feature: Datastore tests
 
   @setup
-  Scenario: Start full docker environment
+  Scenario: Setup test resources
     Given Init Security Context
-    And Start full docker environment
+    And Start Docker environment with resources
+      | db |
+      | es |
 
   Scenario: Simple positive scenario for creating default - weekly index
   Create elasticsearch index with default setting for index creation which is weekly

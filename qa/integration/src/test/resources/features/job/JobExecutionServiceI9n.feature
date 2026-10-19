@@ -22,9 +22,7 @@ Feature: Job Execution service CRUD tests
   Scenario: Setup test resources
     Given Init Security Context
     And Start Docker environment with resources
-      | db            |
-      | events-broker |
-      | job-engine    |
+      | db |
 
   Scenario: Regular job execution creation
 

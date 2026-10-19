@@ -13,13 +13,15 @@
 @endpoint
 @env_docker_base
 
+
 Feature: Endpoint Info Service Integration Tests
   Integration test scenarios for Endpoint Info service
 
   @setup
-  Scenario: Start full docker environment
+  Scenario: Setup test resources
     Given Init Security Context
-    And Start full docker environment
+    And Start Docker environment with resources
+      | db            |
 
   Scenario: Creating Valid Endpoint
   Login as kapua-sys

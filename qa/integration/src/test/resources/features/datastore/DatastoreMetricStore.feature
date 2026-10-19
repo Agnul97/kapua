@@ -19,12 +19,10 @@ Feature: Datastore tests
   This should be converted as a UnitTest
 
   @setup
-  Scenario: Setup test resources (job-engine is required to init DB)
+  Scenario: Setup test resources
     Given Init Security Context
     And Start Docker environment with resources
-      | db                  |
-      | es                  |
-      | job-engine          |
+      | es |
 
   Scenario: Store string metric
     Given I login as user with name "kapua-sys" and password "kapua-password"

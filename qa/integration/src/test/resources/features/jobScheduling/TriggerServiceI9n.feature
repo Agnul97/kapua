@@ -19,9 +19,7 @@ Feature: Trigger service tests
   Scenario: Setup test resources
     Given Init Security Context
     And Start Docker environment with resources
-      | db                  |
-      | events-broker       |
-      | job-engine          |
+      | db |
 
   Scenario: Adding "Device Connect" Schedule With All Valid Parameters
   Login as kapua-sys user and create a job with name job0.

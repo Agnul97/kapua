@@ -12,14 +12,18 @@
 ###############################################################################
 @userIntegration
 @userPermission
-@env_docker
+@env_docker_base
 
 Feature: User Permission tests
 
   @setup
-  Scenario: Start full docker environment
+  Scenario: Setup test resources
     Given Init Security Context
-    And Start full docker environment
+    And Start Docker environment with resources
+      | db            |
+      | es            |
+      | events-broker |
+      | job-engine    |
 
   Scenario: Adding One Permission To User
   Create a new user kapua-a, with only one permission - user:read.

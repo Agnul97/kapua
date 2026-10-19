@@ -12,14 +12,15 @@
 #
 ###############################################################################
 @deviceRegistry
-@env_docker
+@env_docker_base
 
 Feature: Tag tests
 
   @setup
-  Scenario: Start full docker environment
+  Scenario: Setup test resources
     Given Init Security Context
-    And Start full docker environment
+    And Start Docker environment with resources
+      | db |
 
 
   Scenario: Create a single device with associated tags
