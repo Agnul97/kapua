@@ -12,7 +12,7 @@
 #
 ###############################################################################
 @datastore
-@env_none
+@env_docker_base
 
 Feature: Datastore tests
   Test storage and retrieval of supported metric types.
@@ -22,6 +22,7 @@ Feature: Datastore tests
   Scenario: Setup test resources
     Given Init Security Context
     And Start Docker environment with resources
+      | db |
       | es |
 
   Scenario: Store string metric
