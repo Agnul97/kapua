@@ -101,13 +101,23 @@ components:
         items:
           type: array
           items:
-            type: string
+            type: object
+            properties:
+              name:
+                type: string
+              lastMessageOn:
+                type: string
+                format: 'date-time'
+                description: Date of the last message published on the channel by any client. Missing if no message is found (e.g. expired by TTL)
         after:
           type: string
           description: The cursor to pass as `after` to get the next page. Missing on the last page
       example:
         items:
-          - '3'
-          - '4'
-          - d
+          - name: '3'
+            lastMessageOn: '2019-09-12T08:14:13.230Z'
+          - name: '4'
+            lastMessageOn: '2019-09-12T08:15:02.110Z'
+          - name: d
+            lastMessageOn: '2019-09-12T08:16:45.870Z'
         after: d

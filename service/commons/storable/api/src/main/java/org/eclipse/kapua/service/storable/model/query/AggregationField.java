@@ -27,6 +27,12 @@ public class AggregationField {
     private String fieldName;
     private int size;
     private String after;
+    private String minFieldName;
+
+    /**
+     * Name of the {@code min} sub-aggregation computed on {@link #getMinFieldName()}.
+     */
+    public static final String MIN_AGGREGATION_NAME = "min";
 
     /**
      * Constructor.
@@ -52,6 +58,14 @@ public class AggregationField {
         this.after = after;
     }
 
+    /**
+     * @param minFieldName The name of the (date) field whose minimum value is computed for each bucket, {@code null} to compute nothing.
+     */
+    public AggregationField(String aggregationName, String fieldName, int size, String after, String minFieldName) {
+        this(aggregationName, fieldName, size, after);
+        this.minFieldName = minFieldName;
+    }
+
     public String getAggregationName() {
         return aggregationName;
     }
@@ -66,6 +80,10 @@ public class AggregationField {
 
     public String getAfter() {
         return after;
+    }
+
+    public String getMinFieldName() {
+        return minFieldName;
     }
 
 }

@@ -236,6 +236,19 @@ public class ChannelInfoRegistryServiceImpl implements ChannelInfoRegistryServic
 
     @Override
     public List<String> fetchDistinctChannelNames(ChannelInfoQuery query, String after, int limit) throws KapuaException {
+        return fetchDistinctChannelInfos(query, after, limit).stream().map(ChannelInfo::getName).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ChannelInfo> fetchDistinctChannels(ChannelInfoQuery query, String after, int limit) throws KapuaException {
+        List<ChannelInfo> channels = fetchDistinctChannelInfos(query, after, limit);
+        for (ChannelInfo channel : channels) {
+            updateLastPublishedFields(channel);
+        }
+        return channels;
+    }
+
+    private List<ChannelInfo> fetchDistinctChannelInfos(ChannelInfoQuery query, String after, int limit) throws KapuaException {
         ArgumentValidator.notNull(query, QUERY);
         ArgumentValidator.notNull(query.getScopeId(), QUERY_SCOPE_ID);
         //limit is the composite aggregation size, so it must stay below 'search.max_buckets'
@@ -245,9 +258,8 @@ public class ChannelInfoRegistryServiceImpl implements ChannelInfoRegistryServic
         aggregationQuery.setPredicate(query.getPredicate());
         aggregationQuery.setOffset(0);
         aggregationQuery.setLimit(0); //setting size to 0 to retrieve only aggregation results and no documents
-        aggregationQuery.setAggregationField(new AggregationField(DISTINCT_CHANNELS_AGGREGATION_NAME, ChannelInfoSchema.CHANNEL_NAME, limit, after));
-        ChannelInfoListResult result = this.query(aggregationQuery);
-        return result.getItems().stream().map(ChannelInfo::getName).collect(Collectors.toList());
+        aggregationQuery.setAggregationField(new AggregationField(DISTINCT_CHANNELS_AGGREGATION_NAME, ChannelInfoSchema.CHANNEL_NAME, limit, after, ChannelInfoSchema.CHANNEL_TIMESTAMP));
+        return this.query(aggregationQuery).getItems();
     }
 
     private void checkDataAccess(KapuaId scopeId, Actions action)
@@ -259,7 +271,10 @@ public class ChannelInfoRegistryServiceImpl implements ChannelInfoRegistryServic
     /**
      * Update the last published date and last published message identifier for the specified channel info, so it gets the timestamp and the message id of the last published message for the
      * account/clientId in the
-     * channel info
+     * channel info.
+     * <p>
+     * The clientId and the first message date are optional: when missing, the last message published on the channel by any client is looked for
+     * (e.g. the channel infos of a distinct channel names aggregation have no clientId, and their first message date is the earliest one among all the clients).
      *
      * @param channelInfo
      * @throws KapuaException
@@ -276,13 +291,17 @@ public class ChannelInfoRegistryServiceImpl implements ChannelInfoRegistryServic
         messageQuery.setOffset(0);
         messageQuery.setSortFields(sort);
 
-        RangePredicate messageIdPredicate = datastorePredicateFactory.newRangePredicate(ChannelInfoField.TIMESTAMP, channelInfo.getFirstMessageOn(), null);
-        TermPredicate clientIdPredicate = datastorePredicateFactory.newTermPredicate(MessageField.CLIENT_ID, channelInfo.getClientId());
         TermPredicate channelPredicate = datastorePredicateFactory.newTermPredicate(MessageField.CHANNEL, channelInfo.getName());
 
         AndPredicate andPredicate = datastorePredicateFactory.newAndPredicate();
-        andPredicate.getPredicates().add(messageIdPredicate);
-        andPredicate.getPredicates().add(clientIdPredicate);
+        if (channelInfo.getFirstMessageOn() != null) {
+            RangePredicate messageIdPredicate = datastorePredicateFactory.newRangePredicate(ChannelInfoField.TIMESTAMP, channelInfo.getFirstMessageOn(), null);
+            andPredicate.getPredicates().add(messageIdPredicate);
+        }
+        if (channelInfo.getClientId() != null) {
+            TermPredicate clientIdPredicate = datastorePredicateFactory.newTermPredicate(MessageField.CLIENT_ID, channelInfo.getClientId());
+            andPredicate.getPredicates().add(clientIdPredicate);
+        }
         andPredicate.getPredicates().add(channelPredicate);
         messageQuery.setPredicate(andPredicate);
 
@@ -296,11 +315,11 @@ public class ChannelInfoRegistryServiceImpl implements ChannelInfoRegistryServic
             lastPublishedMessageTimestamp = messages.get(0).getTimestamp();
         } else if (messages.isEmpty()) {
             // this condition could happens due to the ttl of the messages (so if it happens, it does not necessarily mean there has been an error!)
-            LOG.warn("Cannot find last timestamp for the specified client id '{}' - account '{}'", channelInfo.getScopeId(), channelInfo.getClientId());
+            LOG.warn("Cannot find last timestamp for the specified client id '{}' - account '{}' - channel '{}'", channelInfo.getClientId(), channelInfo.getScopeId(), channelInfo.getName());
         } else {
             // this condition shouldn't never happens since the query has a limit 1
             // if happens it means than an elasticsearch internal error happens and/or our driver didn't set it correctly!
-            LOG.error("Cannot find last timestamp for the specified client id '{}' - account '{}'. More than one result returned by the query!", channelInfo.getScopeId(), channelInfo.getClientId());
+            LOG.error("Cannot find last timestamp for the specified client id '{}' - account '{}' - channel '{}'. More than one result returned by the query!", channelInfo.getClientId(), channelInfo.getScopeId(), channelInfo.getName());
         }
 
         channelInfo.setLastMessageId(lastPublishedMessageId);

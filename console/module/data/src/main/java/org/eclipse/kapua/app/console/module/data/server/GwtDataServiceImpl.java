@@ -116,7 +116,7 @@ public class GwtDataServiceImpl extends KapuaRemoteServiceServlet implements Gwt
         try {
             List<String> channelNames = channelInfoService.fetchDistinctChannelNames(GwtKapuaCommonsModelConverter.convertKapuaId(scopeId));
             for (String channelName : channelNames) {
-                    addToMap(topicMap, channelName);
+                addToMap(topicMap, channelName);
             }
 
             for (Map.Entry<String, GwtTopic> entry : topicMap.entrySet()) {

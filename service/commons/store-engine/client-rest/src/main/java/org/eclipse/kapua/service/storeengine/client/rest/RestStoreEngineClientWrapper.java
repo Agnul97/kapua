@@ -336,6 +336,12 @@ public class RestStoreEngineClientWrapper implements StoreEngineClientWrapper<St
             Map<String, Object> object = new HashMap<>();
             object.put("scope_id", storableQuery.getScopeId().toStringId());
             object.put(aggregationField.getFieldName(), bucket.path(ElasticsearchKeywords.KEY_BUCKETS_KEY).path(aggregationField.getFieldName()).asText()); //set the value for the aggregation field
+            if (aggregationField.getMinFieldName() != null) {
+                JsonNode min = bucket.path(AggregationField.MIN_AGGREGATION_NAME).path("value_as_string");
+                if (!min.isMissingNode() && !min.isNull()) {
+                    object.put(aggregationField.getMinFieldName(), min.asText());
+                }
+            }
             object.put(QueryConverter.QUERY_FETCH_STYLE_KEY, queryFetchStyle);
             resultList.add(getModelContext().unmarshal(clazz, object));
         }

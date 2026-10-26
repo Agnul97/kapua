@@ -34,6 +34,7 @@ import org.eclipse.kapua.KapuaIllegalArgumentException;
 import org.eclipse.kapua.app.api.core.model.CountResult;
 import org.eclipse.kapua.app.api.core.model.ScopeId;
 import org.eclipse.kapua.app.api.core.model.StorableEntityId;
+import org.eclipse.kapua.app.api.core.model.data.DistinctChannelName;
 import org.eclipse.kapua.app.api.core.model.data.DistinctChannelNamesResult;
 import org.eclipse.kapua.app.api.core.resources.AbstractKapuaResource;
 import org.eclipse.kapua.model.query.SortOrder;
@@ -109,7 +110,7 @@ public class DataChannels extends AbstractKapuaResource {
     }
 
     /**
-     * Gets one page of the distinct channel names in the scope, sorted ascending.
+     * Gets one page of the distinct channel names in the scope, sorted ascending, each with the date of the last message published on it by any client.
      * <p>
      * Pagination is cursor based: to get the next page pass the {@code after} value of the current page.
      * The last page has no {@code after} value.
@@ -145,12 +146,15 @@ public class DataChannels extends AbstractKapuaResource {
         query.setPredicate(buildChannelPredicate(clientIds, name));
 
         // asking for one more channel name to know whether there is a next page
-        List<String> channelNames = channelInfoRegistryService.fetchDistinctChannelNames(query, Strings.emptyToNull(after), limit + 1);
-        if (channelNames.size() > limit) {
-            List<String> page = new ArrayList<>(channelNames.subList(0, limit));
-            return new DistinctChannelNamesResult(page, page.get(limit - 1));
+        List<DistinctChannelName> channels = channelInfoRegistryService.fetchDistinctChannels(query, Strings.emptyToNull(after), limit + 1)
+                .stream()
+                .map(channelInfo -> new DistinctChannelName(channelInfo.getName(), channelInfo.getLastMessageOn()))
+                .collect(Collectors.toList());
+        if (channels.size() > limit) {
+            List<DistinctChannelName> page = new ArrayList<>(channels.subList(0, limit));
+            return new DistinctChannelNamesResult(page, page.get(limit - 1).getName());
         }
-        return new DistinctChannelNamesResult(channelNames, null);
+        return new DistinctChannelNamesResult(channels, null);
     }
 
     /**

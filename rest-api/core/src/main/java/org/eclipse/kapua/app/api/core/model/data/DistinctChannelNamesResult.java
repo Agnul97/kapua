@@ -20,7 +20,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import java.util.List;
 
 /**
- * One page of distinct channel names.
+ * One page of distinct channel names, each with the date of its last message.
  * <p>
  * {@link #getAfter()} is the cursor to pass to get the next page, {@code null} when this is the last page.
  *
@@ -32,7 +32,7 @@ public class DistinctChannelNamesResult {
 
     @XmlElementWrapper(name = "items")
     @XmlElement(name = "item")
-    private List<String> items;
+    private List<DistinctChannelName> items;
 
     @XmlElement(name = "after")
     private String after;
@@ -40,16 +40,16 @@ public class DistinctChannelNamesResult {
     public DistinctChannelNamesResult() {
     }
 
-    public DistinctChannelNamesResult(List<String> items, String after) {
+    public DistinctChannelNamesResult(List<DistinctChannelName> items, String after) {
         this.items = items;
         this.after = after;
     }
 
-    public List<String> getItems() {
+    public List<DistinctChannelName> getItems() {
         return items;
     }
 
-    public void setItems(List<String> items) {
+    public void setItems(List<DistinctChannelName> items) {
         this.items = items;
     }
 

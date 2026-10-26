@@ -91,6 +91,7 @@ public class SchemaKeys {
     public static final String KEY_AGGREGATION_SOURCES = "sources";
 
     public static final String KEY_AGGREGATION_AFTER = "after";
+    public static final String KEY_AGGREGATION_MIN = "min";
     /**
      * Index key
      *

@@ -85,6 +85,16 @@ public class QueryConverterImpl implements QueryConverter {
 
                 ObjectNode aggregationNode = MappingUtils.newObjectNode();
                 aggregationNode.set(SchemaKeys.KEY_AGGREGATION_COMPOSITE, compositeNode);
+                if (aggregationField.getMinFieldName() != null) {
+                    // "aggs": { "min": { "min": { "field": <minFieldName> } } } computed on each bucket
+                    ObjectNode minFieldNode = MappingUtils.newObjectNode();
+                    minFieldNode.put(SchemaKeys.KEY_AGGREGATION_FIELD, aggregationField.getMinFieldName());
+                    ObjectNode minNode = MappingUtils.newObjectNode();
+                    minNode.set(SchemaKeys.KEY_AGGREGATION_MIN, minFieldNode);
+                    ObjectNode subAggsNode = MappingUtils.newObjectNode();
+                    subAggsNode.set(AggregationField.MIN_AGGREGATION_NAME, minNode);
+                    aggregationNode.set(SchemaKeys.KEY_AGGREGATION_NODE, subAggsNode);
+                }
                 ObjectNode aggsNode = MappingUtils.newObjectNode();
                 aggsNode.set(aggregationField.getAggregationName(), aggregationNode);
                 rootNode.set(SchemaKeys.KEY_AGGREGATION_NODE, aggsNode);
