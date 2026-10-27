@@ -295,7 +295,7 @@ public class ChannelInfoRegistryServiceImpl implements ChannelInfoRegistryServic
 
         AndPredicate andPredicate = datastorePredicateFactory.newAndPredicate();
         if (channelInfo.getFirstMessageOn() != null) {
-            RangePredicate messageIdPredicate = datastorePredicateFactory.newRangePredicate(ChannelInfoField.TIMESTAMP, channelInfo.getFirstMessageOn(), null);
+            RangePredicate messageIdPredicate = datastorePredicateFactory.newRangePredicate(ChannelInfoField.TIMESTAMP, channelInfo.getFirstMessageOn(), null); //TODO: does this filter makes any sense? I guess if for performance reasons but actually it won't search in the precise index time-slices (like <scopeid>-message-timeSlice). Could be re-used to search inside specific time-slice indexes
             andPredicate.getPredicates().add(messageIdPredicate);
         }
         if (channelInfo.getClientId() != null) {
