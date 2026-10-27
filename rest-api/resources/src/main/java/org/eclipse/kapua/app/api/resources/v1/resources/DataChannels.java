@@ -110,7 +110,7 @@ public class DataChannels extends AbstractKapuaResource {
     }
 
     /**
-     * Gets one page of the distinct channel names in the scope, sorted ascending, each with the date of the last message published on it by any client.
+     * Gets one page of the distinct channel names in the scope, sorted ascending, each with the id and the date of the last message published on it by any client.
      * <p>
      * Pagination is cursor based: to get the next page pass the {@code after} value of the current page.
      * The last page has no {@code after} value.
@@ -148,7 +148,7 @@ public class DataChannels extends AbstractKapuaResource {
         // asking for one more channel name to know whether there is a next page
         List<DistinctChannelName> channels = channelInfoRegistryService.fetchDistinctChannels(query, Strings.emptyToNull(after), limit + 1)
                 .stream()
-                .map(channelInfo -> new DistinctChannelName(channelInfo.getName(), channelInfo.getLastMessageOn()))
+                .map(channelInfo -> new DistinctChannelName(channelInfo.getName(), channelInfo.getLastMessageId() != null ? channelInfo.getLastMessageId().toString() : null, channelInfo.getLastMessageOn()))
                 .collect(Collectors.toList());
         if (channels.size() > limit) {
             List<DistinctChannelName> page = new ArrayList<>(channels.subList(0, limit));

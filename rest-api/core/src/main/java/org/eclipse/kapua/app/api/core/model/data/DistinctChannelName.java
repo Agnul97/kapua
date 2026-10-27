@@ -22,7 +22,7 @@ import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
 
 /**
- * A distinct channel name with the date of the last message published on it by any client.
+ * A distinct channel name with the id and the date of the last message published on it by any client.
  *
  * @since 2.1.0
  */
@@ -33,6 +33,9 @@ public class DistinctChannelName {
     @XmlElement(name = "name")
     private String name;
 
+    @XmlElement(name = "lastMessageId")
+    private String lastMessageId;
+
     @XmlElement(name = "lastMessageOn")
     @XmlJavaTypeAdapter(DateXmlAdapter.class)
     private Date lastMessageOn;
@@ -40,8 +43,9 @@ public class DistinctChannelName {
     public DistinctChannelName() {
     }
 
-    public DistinctChannelName(String name, Date lastMessageOn) {
+    public DistinctChannelName(String name, String lastMessageId, Date lastMessageOn) {
         this.name = name;
+        this.lastMessageId = lastMessageId;
         this.lastMessageOn = lastMessageOn;
     }
 
@@ -51,6 +55,14 @@ public class DistinctChannelName {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getLastMessageId() {
+        return lastMessageId;
+    }
+
+    public void setLastMessageId(String lastMessageId) {
+        this.lastMessageId = lastMessageId;
     }
 
     public Date getLastMessageOn() {

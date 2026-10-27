@@ -105,6 +105,10 @@ components:
             properties:
               name:
                 type: string
+              lastMessageId:
+                type: string
+                format: uuid
+                description: Id of the last message published on the channel by any client. Missing if no message is found (e.g. expired by TTL)
               lastMessageOn:
                 type: string
                 format: 'date-time'
@@ -115,9 +119,12 @@ components:
       example:
         items:
           - name: '3'
+            lastMessageId: a3e69394-1c20-4446-b596-6fcc4a2028fe
             lastMessageOn: '2019-09-12T08:14:13.230Z'
           - name: '4'
+            lastMessageId: a3e69394-1c20-4446-b596-6fcc4a2028fe
             lastMessageOn: '2019-09-12T08:15:02.110Z'
           - name: d
+            lastMessageId: a3e69394-1c20-4446-b596-6fcc4a2028fe
             lastMessageOn: '2019-09-12T08:16:45.870Z'
         after: d
