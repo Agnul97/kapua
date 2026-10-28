@@ -532,7 +532,7 @@ Feature: Datastore tests
     And I delete all indices
 
   Scenario: Distinct channels report the last message published by any client
-  The same channel name is published by several clients: its last message date is the latest one among all of them.
+  The same channel name is published by several clients: its last message date and id are the ones of the latest message among all of them.
 
     Given I login as user with name "kapua-sys" and password "kapua-password"
     And I select account "kapua-sys"
@@ -554,12 +554,16 @@ Feature: Datastore tests
       | dc_lmo/u |
       | dc_lmo/v |
     And The distinct channel "dc_lmo/t" in the list "Channels" has last message on "2017-07-03T09:00:20.000Z"
+    And The distinct channel "dc_lmo/t" in the list "Channels" has last message id of the stored message number 2 in "StoredMessageIDs"
     And The distinct channel "dc_lmo/u" in the list "Channels" has last message on "2017-07-03T09:00:15.000Z"
+    And The distinct channel "dc_lmo/u" in the list "Channels" has last message id of the stored message number 4 in "StoredMessageIDs"
     And The distinct channel "dc_lmo/v" in the list "Channels" has last message on "2017-07-03T09:00:30.000Z"
+    And The distinct channel "dc_lmo/v" in the list "Channels" has last message id of the stored message number 5 in "StoredMessageIDs"
     When I fetch the distinct channels of the current account with limit 1 after "dc_lmo/t" and store them as "NextChannel"
     Then The distinct channel names in the list "NextChannel" are exactly
       | dc_lmo/u |
     And The distinct channel "dc_lmo/u" in the list "NextChannel" has last message on "2017-07-03T09:00:15.000Z"
+    And The distinct channel "dc_lmo/u" in the list "NextChannel" has last message id of the stored message number 4 in "StoredMessageIDs"
     And I delete all indices
 
   Scenario: Distinct channels reject an invalid page size

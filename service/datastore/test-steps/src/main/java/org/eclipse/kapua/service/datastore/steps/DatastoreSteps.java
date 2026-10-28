@@ -1138,6 +1138,18 @@ public class DatastoreSteps extends TestBase {
         Assert.fail(String.format("The channel [%s] is not in the list", channelName));
     }
 
+    @Then("The distinct channel {string} in the list {string} has last message id of the stored message number {int} in {string}")
+    public void checkDistinctChannelLastMessageId(String channelName, String lstKey, int index, String idListKey) {
+        StorableId expected = ((List<StorableId>) stepData.get(idListKey)).get(index);
+        for (ChannelInfo tmpInfo : (List<ChannelInfo>) stepData.get(lstKey)) {
+            if (channelName.equals(tmpInfo.getName())) {
+                Assert.assertEquals(expected, tmpInfo.getLastMessageId());
+                return;
+            }
+        }
+        Assert.fail(String.format("The channel [%s] is not in the list", channelName));
+    }
+
     @When("I delete all channels from the list {string}")
     public void deleteAllChannelsFromList(String lstKey) throws KapuaException {
         Account account = (Account) stepData.get(LAST_ACCOUNT);
