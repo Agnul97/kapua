@@ -32,7 +32,7 @@ public class AggregationField {
     /**
      * Name of the {@code min} sub-aggregation computed on {@link #getMinFieldName()}.
      */
-    public static final String MIN_AGGREGATION_NAME = "min";
+    public static final String MIN_AGGREGATION_NAME = "min_sub_aggregation";
 
     /**
      * Constructor.

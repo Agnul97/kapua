@@ -289,7 +289,8 @@ public class RestStoreEngineClientWrapper implements StoreEngineClientWrapper<St
 
     /**
      * In case of aggregation query (aka the aggregation field has been set) the returned ResultList will contain one entry for each aggregation bucket ('hits' are not processed/considered in this case)
-     * each entry is of type T and has just 2 fields set: the aggregation field name (with its value) and the scope_id.
+     * each entry is of type T and has just these fields set: the aggregation field name (with its value), the scope_id and, only if {@link AggregationField#getMinFieldName()} is set
+     * and the bucket has a value for it, the min field name (with the minimum value among the documents of the bucket).
      * Only one page of buckets is returned (at most {@link AggregationField#getSize()}, starting after {@link AggregationField#getAfter()}).
      */
     @Override
@@ -336,7 +337,7 @@ public class RestStoreEngineClientWrapper implements StoreEngineClientWrapper<St
             Map<String, Object> object = new HashMap<>();
             object.put("scope_id", storableQuery.getScopeId().toStringId());
             object.put(aggregationField.getFieldName(), bucket.path(ElasticsearchKeywords.KEY_BUCKETS_KEY).path(aggregationField.getFieldName()).asText()); //set the value for the aggregation field
-            if (aggregationField.getMinFieldName() != null) {
+            if (aggregationField.getMinFieldName() != null) { //set the value for the sub-aggregation on the min field, if requested
                 JsonNode min = bucket.path(AggregationField.MIN_AGGREGATION_NAME).path("value_as_string");
                 if (!min.isMissingNode() && !min.isNull()) {
                     object.put(aggregationField.getMinFieldName(), min.asText());
