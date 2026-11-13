@@ -39,6 +39,40 @@
                     <excludeArtifacts>${project.artifactId}</excludeArtifacts>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <executions>
+                    <!--
+                        The test classpath contains kapua-foreignkeys, so that the DB seeded by the tests has the same constraints as the one seeded by the containers.
+                        The authorization features (@env_none) create entities in scopes without a matching account, which foreign keys reject:
+                        they run in their own execution, with kapua-foreignkeys removed from the classpath.
+                    -->
+                    <execution>
+                        <id>default-test</id>
+                        <configuration>
+                            <excludes>
+                                <exclude>**/RunAuthorizationServiceI9nTest.java</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>authorization-no-foreignkeys-test</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>**/RunAuthorizationServiceI9nTest.java</include>
+                            </includes>
+                            <classpathDependencyExcludes>
+                                <classpathDependencyExclude>org.eclipse.kapua:kapua-foreignkeys</classpathDependencyExclude>
+                            </classpathDependencyExcludes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
@@ -349,6 +383,11 @@
         <dependency>
             <groupId>javax.batch</groupId>
             <artifactId>javax.batch-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.kapua</groupId>
+            <artifactId>kapua-foreignkeys</artifactId>
             <scope>test</scope>
         </dependency>
 
