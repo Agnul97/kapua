@@ -82,6 +82,7 @@ public class QueryConverterImpl implements QueryConverter {
                 }
                 rootNode.set(SchemaKeys.KEY_SORT, sortNode);
             }
+            appendSearchAfter(rootNode, storableQuery, convertOptions.sortEnabled);
 
             // offset and limit settings
             Integer offset = storableQuery.getOffset();
@@ -105,6 +106,55 @@ public class QueryConverterImpl implements QueryConverter {
         }
 
         return ((StorableQuery) query).getFetchStyle();
+    }
+
+    /**
+     * Appends the {@code search_after} node to the given request, if requested by {@link StorableQuery#getSearchAfter()}.
+     * <p>
+     * It is converted only when the sort is enabled by the {@link ConvertOptions} (i.e. search requests), so count and delete conversions ignore it.
+     * <p>
+     * ES rejects {@code search_after} used together with {@code from > 0}: instead of silently dropping the offset, this fails fast if {@link StorableQuery#getOffset()} is greater than 0.
+     * It also fails fast if there is no sort, since {@code search_after} is meaningless (and rejected by ES) without it.
+     * <p>
+     * TODO: once the ES version is bumped to &gt;= 7.10, a point-in-time (PIT) should be opened and passed together with {@code search_after}, to have a consistent view across pages
+     * (and {@code _shard_doc} can then serve as the tiebreaker sort field). PIT is not available in ES 7.8.1, and scroll is not used on purpose.
+     *
+     * @param rootNode   The request node.
+     * @param query      The {@link StorableQuery} to convert.
+     * @param sortEnabled Whether the sort is enabled for the current conversion.
+     * @throws QueryMappingException if {@code search_after} is requested without sort, or with an offset greater than 0.
+     */
+    private void appendSearchAfter(ObjectNode rootNode, StorableQuery query, boolean sortEnabled) throws QueryMappingException {
+        List<Object> searchAfter = query.getSearchAfter();
+        if (!sortEnabled || searchAfter == null || searchAfter.isEmpty()) {
+            return;
+        }
+        if (query.getSortFields() == null || query.getSortFields().isEmpty()) {
+            throw new QueryMappingException("search_after requires a sort, but the query has no sort fields");
+        }
+        if (query.getOffset() != null && query.getOffset() > 0) {
+            throw new QueryMappingException("search_after cannot be used with an offset greater than 0, but the query has offset " + query.getOffset());
+        }
+        ArrayNode searchAfterNode = MappingUtils.newArrayNode();
+        for (Object value : searchAfter) {
+            // keep the JSON type of each value (numbers as numbers, keywords as strings): they must be passed back to ES exactly as it returned them
+            if (value == null) {
+                searchAfterNode.addNull();
+            } else if (value instanceof Boolean) {
+                searchAfterNode.add((Boolean) value);
+            } else if (value instanceof Long) {
+                searchAfterNode.add((Long) value);
+            } else if (value instanceof Integer || value instanceof Short || value instanceof Byte) {
+                searchAfterNode.add(((Number) value).intValue());
+            } else if (value instanceof Double || value instanceof Float) {
+                searchAfterNode.add(((Number) value).doubleValue());
+            } else if (value instanceof Number) {
+                searchAfterNode.add(new java.math.BigDecimal(value.toString()));
+            } else {
+                searchAfterNode.add(value.toString());
+            }
+        }
+        rootNode.set(SchemaKeys.KEY_SEARCH_AFTER, searchAfterNode);
     }
 
     private static class ConvertOptions {

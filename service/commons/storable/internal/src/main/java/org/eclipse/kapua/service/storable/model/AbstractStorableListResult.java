@@ -32,6 +32,7 @@ public class AbstractStorableListResult<E extends Storable> implements StorableL
     private ArrayList<E> items;
     private Object nextKey;
     private Long totalCount;
+    private List<Object> lastSortValues;
 
     /**
      * Constructor.
@@ -149,6 +150,16 @@ public class AbstractStorableListResult<E extends Storable> implements StorableL
     @Override
     public void setTotalCount(Long totalCount) {
         this.totalCount = totalCount;
+    }
+
+    @Override
+    public List<Object> getLastSortValues() {
+        return lastSortValues;
+    }
+
+    @Override
+    public void setLastSortValues(List<Object> lastSortValues) {
+        this.lastSortValues = lastSortValues;
     }
 
 }

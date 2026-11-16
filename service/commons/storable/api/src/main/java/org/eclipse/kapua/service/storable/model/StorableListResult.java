@@ -22,6 +22,7 @@ import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlTransient;
 import javax.xml.bind.annotation.XmlType;
 import java.util.Collection;
 import java.util.List;
@@ -162,4 +163,23 @@ public interface StorableListResult<E extends Storable> extends KapuaSerializabl
     @XmlElement(name = "totalCount")
     void setTotalCount(Long totalCount);
 
+    /**
+     * Gets the sort values of the last hit of this page, to be passed to {@link StorableQuery#setSearchAfter(List)} to request the next page.
+     * <p>
+     * This is used internally only, so it is not part of the serialized result.
+     *
+     * @return The raw sort values of the last hit, {@code null} or empty if the page has no hits or no sort was requested.
+     * @since 2.1.0
+     */
+    @XmlTransient
+    List<Object> getLastSortValues();
+
+    /**
+     * Sets the sort values of the last hit of this page.
+     *
+     * @param lastSortValues The sort values of the last hit.
+     * @see #getLastSortValues()
+     * @since 2.1.0
+     */
+    void setLastSortValues(List<Object> lastSortValues);
 }

@@ -26,6 +26,7 @@ public class ResultList<T> {
     private final List<T> result;
     private final long totalCount;
     private boolean totalHitsExceedsCount; //true iff in ES there are actually more than 10k hits
+    private List<Object> lastSortValues;
 
     /**
      * Constructor.
@@ -75,6 +76,26 @@ public class ResultList<T> {
      */
     public long getTotalCount() {
         return totalCount;
+    }
+
+    /**
+     * Gets the raw sort values of the last hit of the page, to be used as {@code search_after} for the next page.
+     *
+     * @return The sort values of the last hit, {@code null} if the page has no hits or no sort was requested.
+     * @since 2.1.0
+     */
+    public List<Object> getLastSortValues() {
+        return lastSortValues;
+    }
+
+    /**
+     * Sets the raw sort values of the last hit of the page.
+     *
+     * @param lastSortValues The sort values of the last hit.
+     * @since 2.1.0
+     */
+    public void setLastSortValues(List<Object> lastSortValues) {
+        this.lastSortValues = lastSortValues;
     }
 
 }

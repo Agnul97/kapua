@@ -38,6 +38,7 @@ public abstract class AbstractStorableQuery implements StorableQuery {
     private List<SortField> sortFields;
     private StorableFetchStyle fetchStyle;
     private List<String> fetchAttributes;
+    private List<Object> searchAfter;
 
     /**
      * Constructor.
@@ -190,5 +191,15 @@ public abstract class AbstractStorableQuery implements StorableQuery {
     @Override
     public void setFetchAttributes(List<String> fetchAttributeNames) {
         fetchAttributes = fetchAttributeNames;
+    }
+
+    @Override
+    public List<Object> getSearchAfter() {
+        return searchAfter;
+    }
+
+    @Override
+    public void setSearchAfter(List<Object> searchAfter) {
+        this.searchAfter = searchAfter;
     }
 }

@@ -204,4 +204,32 @@ public interface StorableQuery {
      * @since 1.0.0
      */
     String[] getExcludes(StorableFetchStyle fetchStyle);
+
+    /**
+     * Gets the {@code search_after} values, used to page through the results without using {@link #getOffset()}.
+     * <p>
+     * This is used internally only, so it is not part of the serialized query.
+     * <p>
+     * Rules for using it:
+     * <ul>
+     *     <li>{@code null} (or empty) means "not used".</li>
+     *     <li>It requires a sort that is unique per document: the caller must add tiebreaker {@link SortField}s so that no two documents have the same sort values.</li>
+     *     <li>The values must be passed back exactly as returned by {@link StorableListResult#getLastSortValues()} of the previous page (dates come back as epoch-millis numbers, keywords as strings): do not convert them.</li>
+     *     <li>{@link #getOffset()} must be {@code 0} or {@code null} when it is used.</li>
+     * </ul>
+     *
+     * @return The {@code search_after} values, or {@code null} if not used.
+     * @since 2.1.0
+     */
+    @XmlTransient
+    List<Object> getSearchAfter();
+
+    /**
+     * Sets the {@code search_after} values.
+     *
+     * @param searchAfter The {@code search_after} values, {@code null} to not use it.
+     * @see #getSearchAfter()
+     * @since 2.1.0
+     */
+    void setSearchAfter(List<Object> searchAfter);
 }

@@ -35,6 +35,12 @@ public class SchemaKeys {
      */
     public static final String KEY_SORT = "sort";
     /**
+     * Search after key
+     *
+     * @since 2.1.0
+     */
+    public static final String KEY_SEARCH_AFTER = "search_after";
+    /**
      * Include fields key
      *
      * @since 1.0.0

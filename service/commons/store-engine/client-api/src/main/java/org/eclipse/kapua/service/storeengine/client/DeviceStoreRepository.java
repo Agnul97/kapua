@@ -134,6 +134,7 @@ public abstract class DeviceStoreRepository<
             final L res = storableFactory.newListResult();
             res.addItems(partialResult.getResult());
             res.setTotalCount(partialResult.getTotalCount());
+            res.setLastSortValues(partialResult.getLastSortValues());
             setLimitExceed(query, partialResult.getTotalHitsExceedsCount(), res);
             return res;
         } catch (ClientException e) {

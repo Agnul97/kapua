@@ -55,6 +55,7 @@ import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.Callable;
@@ -332,8 +333,27 @@ public class RestStoreEngineClientWrapper implements StoreEngineClientWrapper<St
 
                 resultList.add(getModelContext().unmarshal(clazz, object));
             }
+            resultList.setLastSortValues(readSortValues(objectMapper, resultsNode.get(resultsNode.size() - 1)));
         }
         return resultList;
+    }
+
+    /**
+     * Reads the raw {@code sort} values of the given hit, to be used as {@code search_after} for the next page.
+     * <p>
+     * Values are returned as parsed by Jackson (numbers as {@link Number}s, keywords as {@link String}s) and must not be converted, since ES expects them back as it returned them.
+     *
+     * @param objectMapper The {@link ObjectMapper} to use.
+     * @param hit          The hit node.
+     * @return The sort values, or {@code null} if the hit has no {@code sort} (no sort was requested).
+     */
+    @SuppressWarnings("unchecked")
+    static List<Object> readSortValues(ObjectMapper objectMapper, JsonNode hit) {
+        JsonNode sortNode = hit != null ? hit.get(SchemaKeys.KEY_SORT) : null;
+        if (sortNode == null || !sortNode.isArray() || sortNode.isEmpty()) {
+            return null;
+        }
+        return objectMapper.convertValue(sortNode, List.class);
     }
 
     @Override
