@@ -333,7 +333,7 @@ public class RestStoreEngineClientWrapper implements StoreEngineClientWrapper<St
 
                 resultList.add(getModelContext().unmarshal(clazz, object));
             }
-            resultList.setLastSortValues(readSortValues(objectMapper, resultsNode.get(resultsNode.size() - 1)));
+            resultList.setLastSortValues(readSortValues(objectMapper, resultsNode.get(resultsNode.size() - 1))); //Sets the sort value of the last hit. see https://www.elastic.co/docs/reference/elasticsearch/rest-apis/paginate-search-results#search-after. Notice this is set also for sort queries / not necessarily when "search_after" is provided in query
         }
         return resultList;
     }

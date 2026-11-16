@@ -1483,6 +1483,19 @@ Feature: Datastore tests
     Then I get message count 10005
     And I delete all indices
 
+  Scenario: Create 10k messages and more, test if paging with search after goes beyond the internal limit on ES to search more than 10k docs
+
+    Given I login as user with name "kapua-sys" and password "kapua-password"
+    And I select account "kapua-sys"
+    When I store 10005 messages in bulk mode to the index "1-data-message-2023-1"
+    And I refresh all indices
+    # With offset the same query can't go over the 10k window: here it is expected to see all the documents, each one exactly once
+    When I page through all the current account messages using search after with page size 1000 and store the count as "PagedMessages"
+    Then The number "PagedMessages" is 10005
+    When I page through all the current account messages using search after with page size 3333 and store the count as "PagedMessages"
+    Then The number "PagedMessages" is 10005
+    And I delete all indices
+
   @teardown
   Scenario: Stop full docker environment
     Given Stop full docker environment

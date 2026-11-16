@@ -777,6 +777,44 @@ public class DatastoreSteps extends TestBase {
         cl.performRequest(request);
     }
 
+    //pages through all the messages of the current account using search_after (no offset, so no 10k max_result_window limit) and stores the number of paged messages
+    @When("I page through all the current account messages using search after with page size {int} and store the count as {string}")
+    public void pageThroughMessagesWithSearchAfter(int pageSize, String countKey) throws Exception {
+        Account account = (Account) stepData.get(LAST_ACCOUNT);
+        // search_after requires a sort unique per document: the timestamp alone is not (the bulk messages are all identical), so the ES "_id" is the tiebreaker
+        List<SortField> order = Arrays.asList(SortField.descending(MessageSchema.MESSAGE_TIMESTAMP), SortField.ascending("_id"));
+        MessageQuery pagedQuery = createBaseMessageQuery(account.getId(), pageSize, order);
+        pagedQuery.setOffset(0);
+        pagedQuery.setAskTotalCount(false);
+
+        Set<String> seenIds = new HashSet<>();
+        long total = 0;
+        int pages = 0;
+        while (true) {
+            MessageListResult page = messageStoreService.query(pagedQuery);
+            if (page.isEmpty()) {
+                Assert.assertTrue("An empty page must not have last sort values", page.getLastSortValues() == null || page.getLastSortValues().isEmpty());
+                break;
+            }
+            Assert.assertTrue("A page can't be bigger than the page size", page.getSize() <= pageSize);
+            Assert.assertNotNull("A non empty page must have the sort values of its last hit", page.getLastSortValues());
+            Assert.assertEquals("Sort values must be one for each sort field", order.size(), page.getLastSortValues().size());
+            for (DatastoreMessage message : page.getItems()) {
+                Assert.assertTrue("Message " + message.getDatastoreId() + " returned in more than one page", seenIds.add(message.getDatastoreId().toString()));
+            }
+            total += page.getSize();
+            pages++;
+            Assert.assertTrue("Too many pages, search after is probably looping", pages <= 1000);
+            pagedQuery.setSearchAfter(page.getLastSortValues());
+        }
+        stepData.put(countKey, total);
+    }
+
+    @Then("The number {string} is {long}")
+    public void checkStoredNumber(String key, long expected) {
+        Assert.assertEquals(expected, (long) stepData.get(key));
+    }
+
 
     @Given("I set the database to device timestamp indexing")
     public void setDatabaseToDeviceTimestampIndexing() throws KapuaException {
