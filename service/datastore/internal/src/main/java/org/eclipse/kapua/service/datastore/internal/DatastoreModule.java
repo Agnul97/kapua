@@ -14,7 +14,9 @@ package org.eclipse.kapua.service.datastore.internal;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import org.eclipse.kapua.commons.configuration.ServiceConfigurationManager;
@@ -40,12 +42,12 @@ import org.eclipse.kapua.service.datastore.internal.client.TelemetryStoreEngineC
 import org.eclipse.kapua.service.datastore.internal.converter.ModelContextImpl;
 import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedStore;
 import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedTracker;
-import org.eclipse.kapua.service.datastore.internal.lastpublished.RepositoryLastPublishedStore;
 import org.eclipse.kapua.service.datastore.internal.setting.TelemetryStoreEngineClientSettings;
 import org.eclipse.kapua.service.storeengine.client.rest.QueryConverterImpl;
 import org.eclipse.kapua.service.datastore.internal.mediator.DatastoreUtils;
 import org.eclipse.kapua.service.datastore.internal.setting.DatastoreElasticsearchClientSettingsKey;
 import org.eclipse.kapua.service.datastore.internal.setting.DatastoreSettings;
+import org.eclipse.kapua.service.datastore.internal.setting.DatastoreSettingsKey;
 import org.eclipse.kapua.service.storeengine.client.StoreEngineClientProvider;
 import org.eclipse.kapua.service.storeengine.client.configuration.StoreEngineClientConfiguration;
 import org.eclipse.kapua.service.storeengine.client.rest.MetricsEsClient;
@@ -84,16 +86,46 @@ public class DatastoreModule extends AbstractKapuaModule {
         bind(DatastoreUtils.class).in(Singleton.class);
         bind(DatastoreCacheManager.class).in(Singleton.class);
 
-        bind(LastPublishedStore.class).to(RepositoryLastPublishedStore.class).in(Singleton.class);
-        bind(LastPublishedTracker.class).in(Singleton.class);
     }
 
     /**
-     * Registers the tracker in the {@link ServiceModule} lifecycle: its flush scheduler starts and stops with the application (only when enabled).
+     * The channel {@link LastPublishedTracker}, writing through the channel info repository. Client and metric trackers, when their hooks are added,
+     * get the same two providers with their own name, repository and settings keys. With this design, each one has different settings (for example, can flush at diff. times)
+     */
+    @Provides
+    @Singleton
+    @Named(LastPublishedTracker.CHANNEL)
+    LastPublishedTracker channelLastPublishedTracker(ChannelInfoRepository channelInfoRepository, DatastoreSettings settings) {
+        return newLastPublishedTracker(LastPublishedTracker.CHANNEL, channelInfoRepository, settings,
+                DatastoreSettingsKey.LAST_PUBLISHED_CHANNEL_ENABLED,
+                DatastoreSettingsKey.LAST_PUBLISHED_CHANNEL_MIN_ADVANCE,
+                DatastoreSettingsKey.LAST_PUBLISHED_CHANNEL_FLUSH_INTERVAL,
+                DatastoreSettingsKey.LAST_PUBLISHED_CHANNEL_INITIAL_DELAY,
+                DatastoreSettingsKey.LAST_PUBLISHED_CHANNEL_BULK_SIZE,
+                DatastoreSettingsKey.LAST_PUBLISHED_CHANNEL_LAST_FLUSHED_MAX_SIZE);
+    }
+
+    /**
+     * Registers the channel tracker in the {@link ServiceModule} lifecycle: its flush scheduler starts and stops with the application (only when enabled).
      */
     @ProvidesIntoSet
-    ServiceModule lastPublishedTrackerServiceModule(LastPublishedTracker lastPublishedTracker) {
-        return lastPublishedTracker;
+    ServiceModule channelLastPublishedTrackerServiceModule(@Named(LastPublishedTracker.CHANNEL) LastPublishedTracker tracker) {
+        return tracker;
+    }
+
+    /**
+     * Reads one tracker's settings (durations in seconds) and builds it. Shared by the per-type providers, so only the keys differ between types.
+     */
+    private static LastPublishedTracker newLastPublishedTracker(String name, LastPublishedStore store, DatastoreSettings settings,
+                                                                DatastoreSettingsKey enabled, DatastoreSettingsKey minAdvance, DatastoreSettingsKey flushInterval,
+                                                                DatastoreSettingsKey initialDelay, DatastoreSettingsKey bulkSize, DatastoreSettingsKey lastFlushedMaxSize) {
+        return new LastPublishedTracker(name, store,
+                settings.getBoolean(enabled, false),
+                TimeUnit.SECONDS.toMillis(settings.getLong(minAdvance, 10_800L)), // 3h
+                TimeUnit.SECONDS.toMillis(settings.getLong(flushInterval, 60L)),
+                TimeUnit.SECONDS.toMillis(settings.getLong(initialDelay, 0L)),
+                settings.getInt(bulkSize, 1000),
+                settings.getLong(lastFlushedMaxSize, 2_000_000L));
     }
 
     @ProvidesIntoSet

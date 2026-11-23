@@ -15,37 +15,41 @@ package org.eclipse.kapua.service.datastore.internal.lastpublished;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import org.eclipse.kapua.commons.core.ServiceModule;
-import org.eclipse.kapua.service.datastore.internal.setting.DatastoreSettings;
-import org.eclipse.kapua.service.datastore.internal.setting.DatastoreSettingsKey;
 import org.eclipse.kapua.service.storable.model.id.StorableId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Keeps the last published message (timestamp + id) of each info item (channel, client, metric) in memory and writes it to the item through a
- * {@link LastPublishedStore}, at most once per item every N ({@code datastore.last_published.min_advance}).
+ * Keeps the last published message (timestamp + id) of each info item of ONE type (channel, client or metric) in memory and writes it to the item
+ * through a {@link LastPublishedStore} (the info repository of that type), at most once per item every N ({@code minAdvanceMillis}).
  * <p>
  * The stored value is a LOWER BOUND of the real last message time: only timestamps of messages already stored are recorded, values only move forward,
  * and items are never created. Losing an update (crash, eviction, race) only makes the stored value older, which costs readers and the TTL cleanup job
  * an extra message search, never a wrong result.
  * <p>
- * One instance per JVM, shared by the three item types. It never reads or writes the facades' info caches.
+ * One instance per item type, each with its own settings and flush scheduler (see {@code DatastoreModule}), so the types can use different N
+ * values and flush at different moments instead of loading the store all together. It never reads or writes the facades' info caches.
  *
  * @since 2.1.0
  */
 public class LastPublishedTracker implements ServiceModule {
 
     private static final Logger LOG = LoggerFactory.getLogger(LastPublishedTracker.class);
+
+    /**
+     * Name (and Guice {@code @Named} value) of the channel tracker.
+     */
+    public static final String CHANNEL = "channel";
 
     /**
      * How long {@link #stop()} waits for a flush already running before the final flush.
@@ -71,10 +75,12 @@ public class LastPublishedTracker implements ServiceModule {
         }
     }
 
+    private final String name;                                  // item type, for logs and the thread name
     private final LastPublishedStore store;
     private final boolean enabled;
     private final long minAdvanceMillis;                        // N
     private final long flushIntervalMillis;
+    private final long initialDelayMillis;
     private final int bulkSize;
     // Last value THIS JVM wrote per key. It is only a filter: losing an entry (eviction, restart)
     // costs one extra write (a noop once the scripted update is in, see DatastoreRepositoryBase#doUpdateLastPublished). Never a correctness issue.
@@ -86,25 +92,29 @@ public class LastPublishedTracker implements ServiceModule {
     private final Object lifecycleLock = new Object();
     private ScheduledExecutorService scheduler;
 
-    @Inject
-    public LastPublishedTracker(LastPublishedStore store, DatastoreSettings settings) {
-        this(store,
-                settings.getBoolean(DatastoreSettingsKey.LAST_PUBLISHED_ENABLED, false),
-                TimeUnit.SECONDS.toMillis(settings.getLong(DatastoreSettingsKey.LAST_PUBLISHED_MIN_ADVANCE, 10_800L)), //3H by default
-                TimeUnit.SECONDS.toMillis(settings.getLong(DatastoreSettingsKey.LAST_PUBLISHED_FLUSH_INTERVAL, 60L)),
-                settings.getInt(DatastoreSettingsKey.LAST_PUBLISHED_BULK_SIZE, 1000),
-                settings.getLong(DatastoreSettingsKey.LAST_PUBLISHED_LAST_FLUSHED_MAX_SIZE, 2_000_000L));
-    }
-
-    LastPublishedTracker(LastPublishedStore store, boolean enabled, long minAdvanceMillis, long flushIntervalMillis, int bulkSize, long lastFlushedMaxSize) {
-        if (minAdvanceMillis < 0 || flushIntervalMillis <= 0 || bulkSize <= 0 || lastFlushedMaxSize < 0) {
-            throw new IllegalArgumentException(String.format("Invalid last published settings: min_advance=%sms flush_interval=%sms bulk_size=%s last_flushed.max_size=%s",
-                    minAdvanceMillis, flushIntervalMillis, bulkSize, lastFlushedMaxSize));
+    /**
+     * @param name                item type (e.g. "channel"), used in logs and in the flush thread name.
+     * @param store               where the updates are written: the info repository of this type.
+     * @param enabled             when false, {@link #record} is a noop and no scheduler is started.
+     * @param minAdvanceMillis    N: each item is written at most once per N (by message time).
+     * @param flushIntervalMillis delay between the end of a flush and the start of the next one.
+     * @param initialDelayMillis  extra delay before the first flush only. Different values per type spread the flushes of the trackers apart; the
+     *                            offset is approximate, it drifts by the flush durations.
+     * @param bulkSize            updates per store call.
+     * @param lastFlushedMaxSize  keys remembered as already written (the rate filter).
+     */
+    public LastPublishedTracker(String name, LastPublishedStore store, boolean enabled, long minAdvanceMillis, long flushIntervalMillis, long initialDelayMillis,
+                                int bulkSize, long lastFlushedMaxSize) {
+        if (minAdvanceMillis < 0 || flushIntervalMillis <= 0 || initialDelayMillis < 0 || bulkSize <= 0 || lastFlushedMaxSize < 0) {
+            throw new IllegalArgumentException(String.format("Invalid %s last published settings: min_advance=%sms flush_interval=%sms initial_delay=%sms bulk_size=%s last_flushed.max_size=%s",
+                    name, minAdvanceMillis, flushIntervalMillis, initialDelayMillis, bulkSize, lastFlushedMaxSize));
         }
+        this.name = Objects.requireNonNull(name, "name");
         this.store = store;
         this.enabled = enabled;
         this.minAdvanceMillis = minAdvanceMillis;
         this.flushIntervalMillis = flushIntervalMillis;
+        this.initialDelayMillis = initialDelayMillis;
         this.bulkSize = bulkSize;
         // maximumSize only, no time based expiry: the filter compares message timestamps, so an old entry is still a valid filter value.
         this.lastFlushed = CacheBuilder.newBuilder().maximumSize(lastFlushedMaxSize).build();
@@ -157,19 +167,19 @@ public class LastPublishedTracker implements ServiceModule {
             List<Map.Entry<LastPublishedKey, Last>> chunk = entries.subList(i, Math.min(i + bulkSize, entries.size()));
             LastPublishedResult result;
             try {
-                result = store.record(toUpdates(chunk), minAdvanceMillis);
+                result = store.updateLastPublished(toUpdates(chunk), minAdvanceMillis);
             } catch (Exception ex) {
                 // Store unreachable or the whole bulk refused: stop here instead of sending every remaining
                 // chunk to a failing store. Everything not yet sent goes back to the queue.
                 List<Map.Entry<LastPublishedKey, Last>> rest = entries.subList(i, entries.size());
                 rest.forEach(this::requeue);
-                LOG.warn("Last published flush failed, {} items kept for the next flush (queue size now {})", rest.size(), pending.size(), ex);
+                LOG.warn("Last published {} flush failed, {} items kept for the next flush (queue size now {})", name, rest.size(), pending.size(), ex);
                 return;
             }
             requeuedItemsCount = processItemsToRequeue(chunk, result, requeuedItemsCount);
         }
         if (requeuedItemsCount > 0) {
-            LOG.info("Last published flush: {} of {} items to retry at the next flush", requeuedItemsCount, entries.size());
+            LOG.info("Last published {} flush: {} of {} items to retry at the next flush", name, requeuedItemsCount, entries.size());
         }
     }
 
@@ -186,7 +196,7 @@ public class LastPublishedTracker implements ServiceModule {
                 lastFlushed.put(e.getKey(), e.getValue().onMillis);
             }
         }
-        LOG.debug("Last published chunk of {} sent: {}", chunk.size(), result.counts());
+        LOG.debug("Last published {} chunk of {} sent: {}", name, chunk.size(), result.counts());
         return retried;
     }
 
@@ -212,7 +222,7 @@ public class LastPublishedTracker implements ServiceModule {
         try {
             flush();
         } catch (Throwable t) {
-            LOG.error("Unexpected error in the last published flush", t);
+            LOG.error("Unexpected error in the last published {} flush", name, t);
         }
     }
 
@@ -228,13 +238,14 @@ public class LastPublishedTracker implements ServiceModule {
             return;
         }
         scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r, "last-published-flush");
+            Thread t = new Thread(r, "last-published-flush-" + name);
             t.setDaemon(true);
             return t;
         });
         // fixed delay, not fixed rate: a slow flush delays the next one instead of piling flushes up
-        scheduler.scheduleWithFixedDelay(this::flushSafely, flushIntervalMillis, flushIntervalMillis, TimeUnit.MILLISECONDS);
-        LOG.info("Last published tracker started: min_advance={}ms flush_interval={}ms bulk_size={}", minAdvanceMillis, flushIntervalMillis, bulkSize);
+        scheduler.scheduleWithFixedDelay(this::flushSafely, initialDelayMillis + flushIntervalMillis, flushIntervalMillis, TimeUnit.MILLISECONDS);
+        LOG.info("Last published {} tracker started: min_advance={}ms flush_interval={}ms initial_delay={}ms bulk_size={}",
+                name, minAdvanceMillis, flushIntervalMillis, initialDelayMillis, bulkSize);
     }
 
     /**
@@ -254,14 +265,14 @@ public class LastPublishedTracker implements ServiceModule {
         scheduler.shutdown();
         try {
             if (!scheduler.awaitTermination(STOP_WAIT_SECONDS, TimeUnit.SECONDS)) {
-                LOG.warn("Last published flush still running after {}s, stopping anyway", STOP_WAIT_SECONDS);
+                LOG.warn("Last published {} flush still running after {}s, stopping anyway", name, STOP_WAIT_SECONDS);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
         scheduler = null;
         flushSafely();
-        LOG.info("Last published tracker stopped, {} items not flushed", pending.size());
+        LOG.info("Last published {} tracker stopped, {} items not flushed", name, pending.size());
     }
 
     // for tests

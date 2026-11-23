@@ -17,7 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Per-update outcome of {@link LastPublishedStore#record(java.util.List, long)}.
+ * Per-update outcome of {@link LastPublishedStore#updateLastPublished(java.util.List, long)}.
  *
  * @since 2.1.0
  */
@@ -46,10 +46,6 @@ public final class LastPublishedResult {
 
     public void put(LastPublishedKey key, Outcome outcome) {
         outcomes.put(key, outcome);
-    }
-
-    public void putAll(LastPublishedResult other) {
-        outcomes.putAll(other.outcomes);
     }
 
     public Outcome get(LastPublishedKey key) {

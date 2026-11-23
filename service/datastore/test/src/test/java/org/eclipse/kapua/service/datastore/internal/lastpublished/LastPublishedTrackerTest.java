@@ -38,9 +38,9 @@ public class LastPublishedTrackerTest {
 
     private static final long N = TimeUnit.HOURS.toMillis(3);
     private static final KapuaEid SCOPE = new KapuaEid(BigInteger.ONE);
-    private static final LastPublishedKey A = LastPublishedKey.channel(SCOPE, "a");
-    private static final LastPublishedKey B = LastPublishedKey.channel(SCOPE, "b");
-    private static final LastPublishedKey C = LastPublishedKey.channel(SCOPE, "c");
+    private static final LastPublishedKey A = new LastPublishedKey(SCOPE, "a");
+    private static final LastPublishedKey B = new LastPublishedKey(SCOPE, "b");
+    private static final LastPublishedKey C = new LastPublishedKey(SCOPE, "c");
 
     /**
      * In-memory store: records every call, answers with a configurable outcome per key, or throws on configured calls.
@@ -52,7 +52,7 @@ public class LastPublishedTrackerTest {
         int failFromCall = Integer.MAX_VALUE;
 
         @Override
-        public LastPublishedResult record(List<LastPublishedUpdate> updates, long minAdvanceMillis) throws KapuaException {
+        public LastPublishedResult updateLastPublished(List<LastPublishedUpdate> updates, long minAdvanceMillis) throws KapuaException {
             calls.add(new ArrayList<>(updates));
             if (calls.size() > failFromCall) {
                 throw KapuaException.internalError("store down");
@@ -74,7 +74,7 @@ public class LastPublishedTrackerTest {
     }
 
     private static LastPublishedTracker tracker(FakeStore store, int bulkSize) {
-        return new LastPublishedTracker(store, true, N, 60_000, bulkSize, 1000);
+        return new LastPublishedTracker("test", store, true, N, 60_000, 0, bulkSize, 1000);
     }
 
     private static void record(LastPublishedTracker t, LastPublishedKey key, long on, String id) {
@@ -123,7 +123,7 @@ public class LastPublishedTrackerTest {
     @Test
     public void disabledTrackerRecordsNothing() {
         FakeStore store = new FakeStore();
-        LastPublishedTracker t = new LastPublishedTracker(store, false, N, 60_000, 1000, 1000);
+        LastPublishedTracker t = new LastPublishedTracker("test", store, false, N, 60_000, 0, 1000, 1000);
         record(t, A, 1_000, "m1");
         t.flush();
         Assert.assertEquals(0, t.pendingSize());
@@ -254,7 +254,12 @@ public class LastPublishedTrackerTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
+    public void negativeInitialDelayIsRejected() {
+        new LastPublishedTracker("test", new FakeStore(), true, N, 60_000, -1, 1000, 1000);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
     public void invalidSettingsAreRejected() {
-        new LastPublishedTracker(new FakeStore(), true, N, 0, 1000, 1000);
+        new LastPublishedTracker("test", new FakeStore(), true, N, 0, 0, 1000, 1000);
     }
 }

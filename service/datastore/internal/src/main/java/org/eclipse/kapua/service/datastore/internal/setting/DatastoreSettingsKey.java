@@ -123,36 +123,42 @@ public enum DatastoreSettingsKey implements SettingKey {
      */
     CONFIG_MESSAGES_INDEX_MAX_INDEXED_METRICS("datastore.index.message.maxIndexedMetrics"),
     /**
-     * Turns on the last published tracker (recording and flushing of last_message_on / last_message_id on the info docs).
+     * Turns on the channel last published tracker (recording and flushing of last_message_on / last_message_id on the channel info docs).
      *
      * @since 2.1.0
      */
-    LAST_PUBLISHED_ENABLED("datastore.last_published.enabled"),
+    LAST_PUBLISHED_CHANNEL_ENABLED("datastore.last_published.channel.enabled"),
     /**
-     * Smallest advance (seconds) of an item's last message worth writing (N): each item is written at most once per N.
+     * Smallest advance (seconds) of a channel's last message worth writing (N): each channel is written at most once per N.
      * Must stay well below the smallest message TTL.
      *
      * @since 2.1.0
      */
-    LAST_PUBLISHED_MIN_ADVANCE("datastore.last_published.min_advance"),
+    LAST_PUBLISHED_CHANNEL_MIN_ADVANCE("datastore.last_published.channel.min_advance"),
     /**
-     * How often (seconds) the last published queue is flushed.
+     * How often (seconds) the channel last published queue is flushed.
      *
      * @since 2.1.0
      */
-    LAST_PUBLISHED_FLUSH_INTERVAL("datastore.last_published.flush_interval"),
+    LAST_PUBLISHED_CHANNEL_FLUSH_INTERVAL("datastore.last_published.channel.flush_interval"),
     /**
-     * Items per bulk request of a last published flush.
+     * Extra delay (seconds) before the first channel flush: gives each tracker its own offset so their flushes do not hit the store together.
      *
      * @since 2.1.0
      */
-    LAST_PUBLISHED_BULK_SIZE("datastore.last_published.bulk_size"),
+    LAST_PUBLISHED_CHANNEL_INITIAL_DELAY("datastore.last_published.channel.initial_delay"),
     /**
-     * Maximum number of keys remembered as already written (the in-memory filter). An evicted key only costs one extra, usually noop, write.
+     * Channel updates per bulk request of a last published flush.
      *
      * @since 2.1.0
      */
-    LAST_PUBLISHED_LAST_FLUSHED_MAX_SIZE("datastore.last_published.last_flushed.max_size");
+    LAST_PUBLISHED_CHANNEL_BULK_SIZE("datastore.last_published.channel.bulk_size"),
+    /**
+     * Maximum number of channel keys remembered as already written (the in-memory filter). An evicted key only costs one extra, usually noop, write.
+     *
+     * @since 2.1.0
+     */
+    LAST_PUBLISHED_CHANNEL_LAST_FLUSHED_MAX_SIZE("datastore.last_published.channel.last_flushed.max_size");
 
     private String key;
 

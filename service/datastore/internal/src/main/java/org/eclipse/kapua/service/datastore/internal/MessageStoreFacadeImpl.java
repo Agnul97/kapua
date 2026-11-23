@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
 import org.eclipse.kapua.KapuaIllegalArgumentException;
 import org.eclipse.kapua.commons.util.ArgumentValidator;
@@ -72,7 +73,7 @@ public final class MessageStoreFacadeImpl extends AbstractDatastoreFacade implem
     private final ChannelInfoRepository channelInfoRepository;
     private final ClientInfoRepository clientInfoRepository;
     private final DatastoreUtils datastoreUtils;
-    private final LastPublishedTracker lastPublishedTracker;
+    private final LastPublishedTracker channelLastPublishedTracker;
 
     private static final String QUERY = "query";
     private static final String QUERY_SCOPE_ID = "query.scopeId";
@@ -90,7 +91,7 @@ public final class MessageStoreFacadeImpl extends AbstractDatastoreFacade implem
             ChannelInfoRepository channelInfoRepository,
             ClientInfoRepository clientInfoRepository,
             DatastoreUtils datastoreUtils,
-            LastPublishedTracker lastPublishedTracker) {
+            @Named(LastPublishedTracker.CHANNEL) LastPublishedTracker channelLastPublishedTracker) {
         super(configProvider);
         this.storableIdFactory = storableIdFactory;
         this.clientInfoRegistryFacade = clientInfoRegistryFacade;
@@ -101,7 +102,7 @@ public final class MessageStoreFacadeImpl extends AbstractDatastoreFacade implem
         this.channelInfoRepository = channelInfoRepository;
         this.clientInfoRepository = clientInfoRepository;
         this.datastoreUtils = datastoreUtils;
-        this.lastPublishedTracker = lastPublishedTracker;
+        this.channelLastPublishedTracker = channelLastPublishedTracker;
     }
 
     /**
@@ -284,7 +285,7 @@ public final class MessageStoreFacadeImpl extends AbstractDatastoreFacade implem
         channelInfoStoreFacade.upstore(channelInfo);
         // Called after the message has been stored (onAfterMessageStore), on cache hits and misses alike: upstore returns early on a cache hit,
         // and that path must still record. Channels only for now; clients and metrics will follow the same pattern.
-        lastPublishedTracker.record(LastPublishedKey.channel(message.getScopeId(), channelInfo.getId().toString()), message.getTimestamp(), message.getDatastoreId());
+        channelLastPublishedTracker.record(new LastPublishedKey(message.getScopeId(), channelInfo.getId().toString()), message.getTimestamp(), message.getDatastoreId());
 
         KapuaPayload payload = message.getPayload();
         if (payload == null) {

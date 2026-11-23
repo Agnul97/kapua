@@ -17,8 +17,9 @@ import org.eclipse.kapua.KapuaException;
 import java.util.List;
 
 /**
- * Where {@link LastPublishedTracker} writes the last published message of each item. The tracker depends only on this interface, so the storage can
- * change (Elasticsearch info docs now, SQL tables possibly later) without touching the tracker.
+ * Where a {@link LastPublishedTracker} writes the last published message of its items. Implemented by the info repositories
+ * ({@code ChannelInfoRepository}, {@code ClientInfoRepository}, {@code MetricInfoRepository}), so the tracker holds no storage detail and swapping
+ * the repository binding (Elasticsearch now, SQL possibly later) swaps the tracker storage too.
  *
  * @since 2.1.0
  */
@@ -42,5 +43,5 @@ public interface LastPublishedStore {
      * @return the outcome per update.
      * @throws KapuaException when the whole call failed: nothing can be assumed written, the caller retries every update.
      */
-    LastPublishedResult record(List<LastPublishedUpdate> updates, long minAdvanceMillis) throws KapuaException;
+    LastPublishedResult updateLastPublished(List<LastPublishedUpdate> updates, long minAdvanceMillis) throws KapuaException;
 }
