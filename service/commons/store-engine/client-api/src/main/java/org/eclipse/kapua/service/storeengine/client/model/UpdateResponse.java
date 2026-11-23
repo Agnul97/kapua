@@ -102,4 +102,26 @@ public class UpdateResponse extends Response {
         this.exception = exception;
     }
 
+    /**
+     * The HTTP status of this item in a bulk response (0 when not set, e.g. for a single update).
+     *
+     * @since 2.1.0
+     */
+    private int status;
+
+    /**
+     * @return the HTTP status of this item in a bulk response, 0 when not set.
+     * @since 2.1.0
+     */
+    public int getStatus() {
+        return status;
+    }
+
+    /**
+     * @param status the HTTP status of this item in a bulk response.
+     * @since 2.1.0
+     */
+    public void setStatus(int status) {
+        this.status = status;
+    }
 }

@@ -27,8 +27,10 @@ import org.eclipse.kapua.service.datastore.internal.setting.DatastoreSettingsKey
 import org.eclipse.kapua.service.storeengine.client.StoreEngineClientProvider;
 import org.eclipse.kapua.service.storeengine.client.DeviceStoreRepository;
 import org.eclipse.kapua.service.storeengine.client.SchemaKeys;
-import org.eclipse.kapua.service.storeengine.client.model.PartialUpdateRequest;
-import org.eclipse.kapua.service.storeengine.client.model.PartialUpdateResponse;
+import org.eclipse.kapua.service.storeengine.client.model.BulkUpdateRequest;
+import org.eclipse.kapua.service.storeengine.client.model.BulkUpdateResponse;
+import org.eclipse.kapua.service.storeengine.client.model.UpdateRequest;
+import org.eclipse.kapua.service.storeengine.client.model.UpdateResponse;
 import org.eclipse.kapua.service.storable.StorableFactory;
 import org.eclipse.kapua.service.storable.exception.MappingException;
 import org.eclipse.kapua.service.storable.model.Storable;
@@ -40,7 +42,6 @@ import org.eclipse.kapua.service.storable.model.utils.MappingUtils;
 import org.eclipse.kapua.service.storable.repository.StorableRepository;
 
 import java.text.ParseException;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -128,15 +129,16 @@ public abstract class DatastoreRepositoryBase<
     }
 
     /**
-     * Elasticsearch implementation of {@code updateLastPublished} for the info repositories: one bulk of partial updates ({@code doc}, no upsert)
-     * on the index of each update's scope ({@link #indexResolver}).
+     * Elasticsearch implementation of {@code updateLastPublished} for the info repositories: one bulk of partial updates on the index of each
+     * update's scope ({@link #indexResolver}), sent through the client's existing bulk upsert with {@link UpdateRequest#partial} requests (only the two
+     * fields, no {@code doc_as_upsert}).
      * <p>
      * Deliberately NOT through {@code synchIndex}: an update must never create an index or a doc (a missing one answers 404 → MISSING), and
      * {@code synchIndex} reads and writes {@link #indexUpserted}, which for the info repositories is the facade's info cache.
      * <p>
      * TODO: for now a PLAIN partial update (last write wins), to measure the write cost in a stress test. For correctness it must be replaced by the
      * scripted update of the design doc (step 5: Painless max compare + minimum advance, {@code ctx.op = 'noop'} otherwise, sent inline; the client
-     * needs a script variant of {@link PartialUpdateRequest} for it). Without it the stored value can move BACKWARDS (two consumers flushing
+     * needs a script variant of {@link UpdateRequest#partial} for it). Without it the stored value can move BACKWARDS (two consumers flushing
      * different times for the same item, a restarted consumer whose filter is empty, late device data), {@code minAdvanceMillis} is ignored, and
      * redundant writes are reindexed instead of answering noop. The stored value stays a lower bound (it only moves to an older real message), so
      * nothing is wrongly deleted, but it is less precise than it could be.
@@ -148,26 +150,31 @@ public abstract class DatastoreRepositoryBase<
         if (updates.isEmpty()) {
             return result;
         }
-        List<PartialUpdateRequest> requests = new ArrayList<>(updates.size());
+        BulkUpdateRequest bulkRequest = new BulkUpdateRequest();
         for (LastPublishedUpdate u : updates) {
             // TODO: correctness - minAdvanceMillis is ignored by the plain update (see above)
-            requests.add(toLastPublishedRequest(indexResolver(u.getKey().getScopeId()), u));
+            bulkRequest.add(toLastPublishedRequest(indexResolver(u.getKey().getScopeId()), u));
         }
 
         // A request-level failure (ES unreachable, whole bulk rejected) propagates: the tracker requeues everything.
-        List<PartialUpdateResponse> responses;
+        List<UpdateResponse> responses;
         try {
-            responses = storeEngineClientProviderInstance.getStoreEngineClient().partialUpdate(requests);
+            BulkUpdateResponse bulkResponse = storeEngineClientProviderInstance.getStoreEngineClient().upsert(bulkRequest);
+            responses = bulkResponse.getResponse();
         } catch (Exception e) {
             throw KapuaException.internalError(e, "Last published bulk update failed");
         }
+        // ES answers one item per action, in the request order, so the i-th response belongs to the i-th update.
+        // A different count means the positions can't be trusted: fail the whole call, the tracker requeues everything.
+        if (responses.size() != updates.size()) {
+            throw KapuaException.internalError(String.format("Last published bulk response has %s items, %s updates were sent", responses.size(), updates.size()));
+        }
 
-        // One response per request, in the request order: the client rejects a response with a different item count.
         for (int i = 0; i < responses.size(); i++) {
-            PartialUpdateResponse response = responses.get(i);
+            UpdateResponse response = responses.get(i);
             Outcome outcome = toLastPublishedOutcome(response);
             if (outcome == Outcome.FAILED) {
-                logger.warn("Last published update failed permanently: {}, reason: {}", response, response.getErrorReason());
+                logger.warn("Last published update failed permanently: {}/{} status {}, reason: {}", response.getIndex(), response.getId(), response.getStatus(), response.getDescription());
             }
             result.put(updates.get(i).getKey(), outcome);
         }
@@ -177,7 +184,7 @@ public abstract class DatastoreRepositoryBase<
     /**
      * The partial update of one item: both fields together, never an upsert.
      */
-    static PartialUpdateRequest toLastPublishedRequest(String indexName, LastPublishedUpdate update) throws KapuaException {
+    static UpdateRequest toLastPublishedRequest(String indexName, LastPublishedUpdate update) throws KapuaException {
         Map<String, Object> doc = new HashMap<>();
         try {
             // same format as every other datastore date (DATASTORE_DATE_FORMAT), so the field mapping accepts it
@@ -186,7 +193,7 @@ public abstract class DatastoreRepositoryBase<
             throw KapuaException.internalError(e, "Cannot format the last message date");
         }
         doc.put(LAST_MESSAGE_ID, update.getMessageId());
-        return new PartialUpdateRequest(indexName, update.getKey().getId(), doc);
+        return UpdateRequest.partial(update.getKey().getId(), indexName, doc);
     }
 
     /**
@@ -199,9 +206,9 @@ public abstract class DatastoreRepositoryBase<
      *     <li>any other status (e.g. 400 for a mapping error) → FAILED: retrying would fail the same way.</li>
      * </ul>
      */
-    static Outcome toLastPublishedOutcome(PartialUpdateResponse response) {
+    static Outcome toLastPublishedOutcome(UpdateResponse response) {
         int status = response.getStatus();
-        if (response.isSuccessful()) {
+        if (status >= 200 && status < 300) {
             return Outcome.DONE;
         }
         if (status == 404) {

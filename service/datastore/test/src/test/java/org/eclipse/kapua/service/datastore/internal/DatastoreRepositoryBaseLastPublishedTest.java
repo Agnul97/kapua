@@ -17,8 +17,8 @@ import org.eclipse.kapua.qa.markers.junit.JUnitTests;
 import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedKey;
 import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedResult.Outcome;
 import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedUpdate;
-import org.eclipse.kapua.service.storeengine.client.model.PartialUpdateRequest;
-import org.eclipse.kapua.service.storeengine.client.model.PartialUpdateResponse;
+import org.eclipse.kapua.service.storeengine.client.model.UpdateRequest;
+import org.eclipse.kapua.service.storeengine.client.model.UpdateResponse;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -32,12 +32,15 @@ import java.math.BigInteger;
 public class DatastoreRepositoryBaseLastPublishedTest {
 
     private static Outcome outcome(int status) {
-        return DatastoreRepositoryBase.toLastPublishedOutcome(new PartialUpdateResponse("i", "1", status, null, null, null));
+        UpdateResponse response = new UpdateResponse("1", "i");
+        response.setStatus(status);
+        return DatastoreRepositoryBase.toLastPublishedOutcome(response);
     }
 
     @Test
     public void statusMapping() {
         Assert.assertEquals(Outcome.DONE, outcome(200));      // updated or noop
+        Assert.assertEquals(Outcome.FAILED, outcome(0));      // no status reported
         Assert.assertEquals(Outcome.MISSING, outcome(404));   // document_missing_exception / index_not_found_exception
         Assert.assertEquals(Outcome.RETRY, outcome(409));     // version conflict
         Assert.assertEquals(Outcome.RETRY, outcome(429));     // push-back
@@ -48,11 +51,14 @@ public class DatastoreRepositoryBaseLastPublishedTest {
     @Test
     public void plainUpdateWritesBothFieldsTogether() throws Exception {
         LastPublishedKey key = new LastPublishedKey(new KapuaEid(BigInteger.ONE), "abc");
-        PartialUpdateRequest request = DatastoreRepositoryBase.toLastPublishedRequest("1-data-channel", new LastPublishedUpdate(key, 0L, "m1"));
+        UpdateRequest request = DatastoreRepositoryBase.toLastPublishedRequest("1-data-channel", new LastPublishedUpdate(key, 0L, "m1"));
 
         Assert.assertEquals("1-data-channel", request.getIndex());
         Assert.assertEquals("abc", request.getId());
-        Assert.assertEquals("1970-01-01T00:00:00.000Z", request.getDoc().get("last_message_on"));
-        Assert.assertEquals("m1", request.getDoc().get("last_message_id"));
+        Assert.assertFalse(request.isDocAsUpsert());
+        Assert.assertNull(request.getStorable());
+        Assert.assertEquals(2, request.getPartialDoc().size());
+        Assert.assertEquals("1970-01-01T00:00:00.000Z", request.getPartialDoc().get("last_message_on"));
+        Assert.assertEquals("m1", request.getPartialDoc().get("last_message_id"));
     }
 }
