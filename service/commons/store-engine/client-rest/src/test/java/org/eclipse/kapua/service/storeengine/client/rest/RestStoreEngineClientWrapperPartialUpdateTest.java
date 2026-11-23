@@ -41,7 +41,7 @@ public class RestStoreEngineClientWrapperPartialUpdateTest {
         doc.put("last_message_on", "2026-11-19T10:15:30.123Z");
         doc.put("last_message_id", "m1");
         String body = RestStoreEngineClientWrapper.buildPartialUpdateBulkBody(objectMapper, Collections.singletonList(
-                new PartialUpdateRequest("1-data-channel", "abc", doc, 3)));
+                new PartialUpdateRequest("1-data-channel", "abc", doc)));
 
         Assertions.assertThat(body).endsWith("\n").doesNotContain("upsert");
         String[] lines = body.split("\n");
@@ -49,7 +49,7 @@ public class RestStoreEngineClientWrapperPartialUpdateTest {
         JsonNode action = objectMapper.readTree(lines[0]);
         Assertions.assertThat(action.at("/update/_index").asText()).isEqualTo("1-data-channel");
         Assertions.assertThat(action.at("/update/_id").asText()).isEqualTo("abc");
-        Assertions.assertThat(action.at("/update/retry_on_conflict").asInt()).isEqualTo(3);
+        Assertions.assertThat(action.at("/update").has("retry_on_conflict")).isFalse();
         JsonNode source = objectMapper.readTree(lines[1]);
         Assertions.assertThat(source.at("/doc/last_message_on").asText()).isEqualTo("2026-11-19T10:15:30.123Z");
         Assertions.assertThat(source.at("/doc/last_message_id").asText()).isEqualTo("m1");

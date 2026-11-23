@@ -73,11 +73,6 @@ public abstract class DatastoreRepositoryBase<
         }
     }
 
-    /**
-     * Concurrent updates of the same doc (several consumers, or the facade upserting it) are retried by ES instead of failing with 409.
-     */
-    static final int LAST_PUBLISHED_RETRY_ON_CONFLICT = 3;
-
     protected DatastoreRepositoryBase(
             StoreEngineClientProvider storeEngineClientProviderInstance,
             Class<T> clazz,
@@ -191,7 +186,7 @@ public abstract class DatastoreRepositoryBase<
             throw KapuaException.internalError(e, "Cannot format the last message date");
         }
         doc.put(LAST_MESSAGE_ID, update.getMessageId());
-        return new PartialUpdateRequest(indexName, update.getKey().getId(), doc, LAST_PUBLISHED_RETRY_ON_CONFLICT);
+        return new PartialUpdateRequest(indexName, update.getKey().getId(), doc);
     }
 
     /**
@@ -199,7 +194,8 @@ public abstract class DatastoreRepositoryBase<
      * <ul>
      *     <li>2xx ({@code updated} or {@code noop}) → DONE;</li>
      *     <li>404 (missing doc, or missing index) → MISSING: the update has no upsert, so nothing was created;</li>
-     *     <li>409 (still conflicting after {@link #LAST_PUBLISHED_RETRY_ON_CONFLICT}), 429 (push-back), 5xx → RETRY;</li>
+     *     <li>409 (version conflict: another writer updated the doc at the same moment; no {@code retry_on_conflict} is sent, so the tracker rewrites it at the
+     *     next flush and the conflicts stay visible in its retry count), 429 (push-back), 5xx → RETRY;</li>
      *     <li>any other status (e.g. 400 for a mapping error) → FAILED: retrying would fail the same way.</li>
      * </ul>
      */

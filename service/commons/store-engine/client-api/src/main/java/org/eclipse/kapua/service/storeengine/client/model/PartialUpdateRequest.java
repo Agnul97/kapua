@@ -20,7 +20,8 @@ import java.util.Map;
  * {@link org.eclipse.kapua.service.storeengine.client.StoreEngineClientWrapper#partialUpdate(java.util.List)}: the given fields are merged into the
  * stored document (no condition, last write wins).
  * <p>
- * There is deliberately no upsert option: a missing document is reported as not found and never created.
+ * There is deliberately no upsert option: a missing document is reported as not found and never created. There is no {@code retry_on_conflict}
+ * either: a version conflict is reported per item (409) and the caller decides whether to retry.
  *
  * @since 2.1.0
  */
@@ -29,20 +30,17 @@ public class PartialUpdateRequest {
     private final String index;
     private final String id;
     private final Map<String, Object> doc;
-    private final int retryOnConflict;
 
     /**
      * @param index           The index of the document.
      * @param id              The document id.
-     * @param doc             The fields to set.
-     * @param retryOnConflict How many times the engine retries the update on a version conflict (0 = default, no retry).
+     * @param doc   The fields to set.
      * @since 2.1.0
      */
-    public PartialUpdateRequest(String index, String id, Map<String, Object> doc, int retryOnConflict) {
+    public PartialUpdateRequest(String index, String id, Map<String, Object> doc) {
         this.index = index;
         this.id = id;
         this.doc = doc != null ? doc : Collections.emptyMap();
-        this.retryOnConflict = retryOnConflict;
     }
 
     public String getIndex() {
@@ -55,9 +53,5 @@ public class PartialUpdateRequest {
 
     public Map<String, Object> getDoc() {
         return doc;
-    }
-
-    public int getRetryOnConflict() {
-        return retryOnConflict;
     }
 }

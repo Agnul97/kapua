@@ -39,7 +39,7 @@ public class DatastoreRepositoryBaseLastPublishedTest {
     public void statusMapping() {
         Assert.assertEquals(Outcome.DONE, outcome(200));      // updated or noop
         Assert.assertEquals(Outcome.MISSING, outcome(404));   // document_missing_exception / index_not_found_exception
-        Assert.assertEquals(Outcome.RETRY, outcome(409));     // conflict after retry_on_conflict
+        Assert.assertEquals(Outcome.RETRY, outcome(409));     // version conflict
         Assert.assertEquals(Outcome.RETRY, outcome(429));     // push-back
         Assert.assertEquals(Outcome.RETRY, outcome(503));
         Assert.assertEquals(Outcome.FAILED, outcome(400));    // mapping error
@@ -52,7 +52,6 @@ public class DatastoreRepositoryBaseLastPublishedTest {
 
         Assert.assertEquals("1-data-channel", request.getIndex());
         Assert.assertEquals("abc", request.getId());
-        Assert.assertEquals(DatastoreRepositoryBase.LAST_PUBLISHED_RETRY_ON_CONFLICT, request.getRetryOnConflict());
         Assert.assertEquals("1970-01-01T00:00:00.000Z", request.getDoc().get("last_message_on"));
         Assert.assertEquals("m1", request.getDoc().get("last_message_id"));
     }

@@ -312,9 +312,6 @@ public class RestStoreEngineClientWrapper implements StoreEngineClientWrapper<St
                 ObjectNode update = action.putObject(ElasticsearchKeywords.KEY_UPDATE);
                 update.put(ElasticsearchKeywords.KEY_DOC_INDEX, r.getIndex());
                 update.put(ElasticsearchKeywords.KEY_DOC_ID, r.getId());
-                if (r.getRetryOnConflict() > 0) {
-                    update.put(ElasticsearchKeywords.KEY_RETRY_ON_CONFLICT, r.getRetryOnConflict());
-                }
 
                 // partial doc: ES merges it into the stored doc (detect_noop skips identical values)
                 ObjectNode source = objectMapper.createObjectNode();

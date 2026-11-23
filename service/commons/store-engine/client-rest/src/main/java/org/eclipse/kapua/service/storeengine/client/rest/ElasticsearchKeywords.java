@@ -42,5 +42,4 @@ public class ElasticsearchKeywords {
     static final String KEY_RELATION = "relation";
 
     static final String KEY_ERROR = "error";
-    static final String KEY_RETRY_ON_CONFLICT = "retry_on_conflict";
 }
