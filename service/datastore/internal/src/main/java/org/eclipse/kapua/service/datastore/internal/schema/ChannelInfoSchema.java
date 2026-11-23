@@ -72,6 +72,19 @@ public class ChannelInfoSchema {
     public static final String CHANNEL_MESSAGE_ID = "message_id";
 
     /**
+     * Last message timestamp (lower bound of the real one, written by the LastPublishedTracker).
+     *
+     * @since 2.1.0
+     */
+    public static final String CHANNEL_LAST_MESSAGE_ON = "last_message_on";
+    /**
+     * Identifier of the message at CHANNEL_LAST_MESSAGE_ON (written together with it).
+     *
+     * @since 2.1.0
+     */
+    public static final String CHANNEL_LAST_MESSAGE_ID = "last_message_id";
+
+    /**
      * Create and return the Json representation of the channel info schema
      *
      * @return
@@ -101,6 +114,12 @@ public class ChannelInfoSchema {
 
                 ObjectNode channelMessageId = MappingUtils.newObjectNode(new KeyValueEntry[]{new KeyValueEntry(SchemaKeys.KEY_TYPE, SchemaKeys.TYPE_KEYWORD), new KeyValueEntry(SchemaKeys.KEY_INDEX, SchemaKeys.VALUE_TRUE)});
                 propertiesNode.set(CHANNEL_MESSAGE_ID, channelMessageId);
+
+                ObjectNode channelLastMessageOn = MappingUtils.newObjectNode(new KeyValueEntry[]{new KeyValueEntry(SchemaKeys.KEY_TYPE, SchemaKeys.TYPE_DATE), new KeyValueEntry(SchemaKeys.KEY_FORMAT, DatastoreUtils.DATASTORE_DATE_FORMAT)});
+                propertiesNode.set(CHANNEL_LAST_MESSAGE_ON, channelLastMessageOn);
+
+                ObjectNode channelLastMessageId = MappingUtils.newObjectNode(new KeyValueEntry[]{new KeyValueEntry(SchemaKeys.KEY_TYPE, SchemaKeys.TYPE_KEYWORD), new KeyValueEntry(SchemaKeys.KEY_INDEX, SchemaKeys.VALUE_TRUE)});
+                propertiesNode.set(CHANNEL_LAST_MESSAGE_ID, channelLastMessageId);
             }
             channelNode.set(SchemaKeys.FIELD_NAME_PROPERTIES, propertiesNode);
         }

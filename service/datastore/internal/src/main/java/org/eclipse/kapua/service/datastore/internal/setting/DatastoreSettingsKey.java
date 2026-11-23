@@ -121,7 +121,38 @@ public enum DatastoreSettingsKey implements SettingKey {
     /**
      * Elasticsearch max number of field mappings for the message index
      */
-    CONFIG_MESSAGES_INDEX_MAX_INDEXED_METRICS("datastore.index.message.maxIndexedMetrics");
+    CONFIG_MESSAGES_INDEX_MAX_INDEXED_METRICS("datastore.index.message.maxIndexedMetrics"),
+    /**
+     * Turns on the last published tracker (recording and flushing of last_message_on / last_message_id on the info docs).
+     *
+     * @since 2.1.0
+     */
+    LAST_PUBLISHED_ENABLED("datastore.last_published.enabled"),
+    /**
+     * Smallest advance (seconds) of an item's last message worth writing (N): each item is written at most once per N.
+     * Must stay well below the smallest message TTL.
+     *
+     * @since 2.1.0
+     */
+    LAST_PUBLISHED_MIN_ADVANCE("datastore.last_published.min_advance"),
+    /**
+     * How often (seconds) the last published queue is flushed.
+     *
+     * @since 2.1.0
+     */
+    LAST_PUBLISHED_FLUSH_INTERVAL("datastore.last_published.flush_interval"),
+    /**
+     * Items per bulk request of a last published flush.
+     *
+     * @since 2.1.0
+     */
+    LAST_PUBLISHED_BULK_SIZE("datastore.last_published.bulk_size"),
+    /**
+     * Maximum number of keys remembered as already written (the in-memory filter). An evicted key only costs one extra, usually noop, write.
+     *
+     * @since 2.1.0
+     */
+    LAST_PUBLISHED_LAST_FLUSHED_MAX_SIZE("datastore.last_published.last_flushed.max_size");
 
     private String key;
 

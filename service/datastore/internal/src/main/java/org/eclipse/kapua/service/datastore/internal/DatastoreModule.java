@@ -19,6 +19,7 @@ import javax.inject.Singleton;
 
 import org.eclipse.kapua.commons.configuration.ServiceConfigurationManager;
 import org.eclipse.kapua.commons.core.AbstractKapuaModule;
+import org.eclipse.kapua.commons.core.ServiceModule;
 import org.eclipse.kapua.commons.jpa.KapuaJpaTxManagerFactory;
 import org.eclipse.kapua.commons.model.domains.Domains;
 import org.eclipse.kapua.model.domain.Actions;
@@ -37,6 +38,9 @@ import org.eclipse.kapua.service.datastore.MetricInfoFactory;
 import org.eclipse.kapua.service.datastore.MetricInfoRegistryService;
 import org.eclipse.kapua.service.datastore.internal.client.TelemetryStoreEngineClientConfiguration;
 import org.eclipse.kapua.service.datastore.internal.converter.ModelContextImpl;
+import org.eclipse.kapua.service.datastore.internal.lastpublished.EsLastPublishedStore;
+import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedStore;
+import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedTracker;
 import org.eclipse.kapua.service.datastore.internal.setting.TelemetryStoreEngineClientSettings;
 import org.eclipse.kapua.service.storeengine.client.rest.QueryConverterImpl;
 import org.eclipse.kapua.service.datastore.internal.mediator.DatastoreUtils;
@@ -79,6 +83,17 @@ public class DatastoreModule extends AbstractKapuaModule {
         bind(MetricsDatastore.class).in(Singleton.class);
         bind(DatastoreUtils.class).in(Singleton.class);
         bind(DatastoreCacheManager.class).in(Singleton.class);
+
+        bind(LastPublishedStore.class).to(EsLastPublishedStore.class).in(Singleton.class);
+        bind(LastPublishedTracker.class).in(Singleton.class);
+    }
+
+    /**
+     * Registers the tracker in the {@link ServiceModule} lifecycle: its flush scheduler starts and stops with the application (only when enabled).
+     */
+    @ProvidesIntoSet
+    ServiceModule lastPublishedTrackerServiceModule(LastPublishedTracker lastPublishedTracker) {
+        return lastPublishedTracker;
     }
 
     @ProvidesIntoSet

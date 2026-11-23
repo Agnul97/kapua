@@ -28,6 +28,8 @@ import org.eclipse.kapua.message.device.data.KapuaDataChannel;
 import org.eclipse.kapua.message.internal.device.data.KapuaDataChannelImpl;
 import org.eclipse.kapua.model.id.KapuaId;
 import org.eclipse.kapua.service.datastore.exception.DatastoreDisabledException;
+import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedKey;
+import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedTracker;
 import org.eclipse.kapua.service.datastore.internal.mediator.ChannelInfoField;
 import org.eclipse.kapua.service.datastore.internal.mediator.ClientInfoField;
 import org.eclipse.kapua.service.datastore.internal.mediator.ConfigurationException;
@@ -70,6 +72,7 @@ public final class MessageStoreFacadeImpl extends AbstractDatastoreFacade implem
     private final ChannelInfoRepository channelInfoRepository;
     private final ClientInfoRepository clientInfoRepository;
     private final DatastoreUtils datastoreUtils;
+    private final LastPublishedTracker lastPublishedTracker;
 
     private static final String QUERY = "query";
     private static final String QUERY_SCOPE_ID = "query.scopeId";
@@ -86,7 +89,8 @@ public final class MessageStoreFacadeImpl extends AbstractDatastoreFacade implem
             MetricInfoRepository metricInfoRepository,
             ChannelInfoRepository channelInfoRepository,
             ClientInfoRepository clientInfoRepository,
-            DatastoreUtils datastoreUtils) {
+            DatastoreUtils datastoreUtils,
+            LastPublishedTracker lastPublishedTracker) {
         super(configProvider);
         this.storableIdFactory = storableIdFactory;
         this.clientInfoRegistryFacade = clientInfoRegistryFacade;
@@ -97,6 +101,7 @@ public final class MessageStoreFacadeImpl extends AbstractDatastoreFacade implem
         this.channelInfoRepository = channelInfoRepository;
         this.clientInfoRepository = clientInfoRepository;
         this.datastoreUtils = datastoreUtils;
+        this.lastPublishedTracker = lastPublishedTracker;
     }
 
     /**
@@ -277,6 +282,9 @@ public final class MessageStoreFacadeImpl extends AbstractDatastoreFacade implem
         channelInfo.setFirstMessageOn(message.getTimestamp());
         channelInfo.setId(storableIdFactory.newStorableId(ChannelInfoField.getOrDeriveId(null, channelInfo)));
         channelInfoStoreFacade.upstore(channelInfo);
+        // Called after the message has been stored (onAfterMessageStore), on cache hits and misses alike: upstore returns early on a cache hit,
+        // and that path must still record. Channels only for now; clients and metrics will follow the same pattern.
+        lastPublishedTracker.record(LastPublishedKey.channel(message.getScopeId(), channelInfo.getId().toString()), message.getTimestamp(), message.getDatastoreId());
 
         KapuaPayload payload = message.getPayload();
         if (payload == null) {

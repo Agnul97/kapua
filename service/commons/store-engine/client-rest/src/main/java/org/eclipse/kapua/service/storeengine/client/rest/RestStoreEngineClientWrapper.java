@@ -40,6 +40,8 @@ import org.eclipse.kapua.service.storeengine.client.model.IndexResponse;
 import org.eclipse.kapua.service.storeengine.client.model.InsertRequest;
 import org.eclipse.kapua.service.storeengine.client.model.InsertResponse;
 import org.eclipse.kapua.service.storeengine.client.model.ResultList;
+import org.eclipse.kapua.service.storeengine.client.model.PartialUpdateRequest;
+import org.eclipse.kapua.service.storeengine.client.model.PartialUpdateResponse;
 import org.eclipse.kapua.service.storeengine.client.model.UpdateRequest;
 import org.eclipse.kapua.service.storeengine.client.model.UpdateResponse;
 import org.eclipse.kapua.service.storeengine.client.rest.exception.RequestEntityWriteError;
@@ -54,7 +56,9 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.Callable;
@@ -276,6 +280,88 @@ public class RestStoreEngineClientWrapper implements StoreEngineClientWrapper<St
         } else {
             throw buildExceptionFromUnsuccessfulResponse("Upsert", updateResponse);
         }
+    }
+
+    @Override
+    public List<PartialUpdateResponse> partialUpdate(List<PartialUpdateRequest> requests) throws ClientException {
+        if (requests == null || requests.isEmpty()) {
+            return new ArrayList<>();
+        }
+        StoreEngineClientRequest request = getClient().newRequest(ElasticsearchKeywords.ACTION_POST, ElasticsearchResourcePaths.getBulkPath());
+        request.setJsonEntity(buildPartialUpdateBulkBody(objectMapper, requests));
+        StoreEngineClientResponse bulkResponse = restCallTimeoutHandler(() -> getClient().performRequest(request), "multi-index", "PARTIAL UPDATE BULK");
+
+        if (!isRequestSuccessful(bulkResponse)) {
+            // Request-level failure (e.g. 429 with the whole bulk rejected, 5xx): nothing was applied, the caller retries everything.
+            throw buildExceptionFromUnsuccessfulResponse("Partial update", bulkResponse);
+        }
+        return readPartialUpdateBulkResponse(readResponseAsJsonNode(bulkResponse), requests.size());
+    }
+
+    /**
+     * Builds the NDJSON body of a partial update bulk: an {@code update} action line and a {@code doc} line per request, without
+     * {@code doc_as_upsert} or {@code upsert}, so a missing document is never created.
+     * <p>
+     * Written with Jackson (not string concatenation) so ids, index names and params are always correctly escaped.
+     */
+    static String buildPartialUpdateBulkBody(ObjectMapper objectMapper, List<PartialUpdateRequest> requests) throws RequestEntityWriteError {
+        StringBuilder body = new StringBuilder();
+        try {
+            for (PartialUpdateRequest r : requests) {
+                ObjectNode action = objectMapper.createObjectNode();
+                ObjectNode update = action.putObject(ElasticsearchKeywords.KEY_UPDATE);
+                update.put(ElasticsearchKeywords.KEY_DOC_INDEX, r.getIndex());
+                update.put(ElasticsearchKeywords.KEY_DOC_ID, r.getId());
+                if (r.getRetryOnConflict() > 0) {
+                    update.put(ElasticsearchKeywords.KEY_RETRY_ON_CONFLICT, r.getRetryOnConflict());
+                }
+
+                // partial doc: ES merges it into the stored doc (detect_noop skips identical values)
+                ObjectNode source = objectMapper.createObjectNode();
+                source.set(ElasticsearchKeywords.KEY_DOC, objectMapper.valueToTree(r.getDoc()));
+
+                // NDJSON: one compact JSON object per line, the body must end with a newline
+                body.append(objectMapper.writeValueAsString(action)).append('\n');
+                body.append(objectMapper.writeValueAsString(source)).append('\n');
+            }
+        } catch (JsonProcessingException | IllegalArgumentException e) {
+            throw new RequestEntityWriteError(e);
+        }
+        return body.toString();
+    }
+
+    /**
+     * Reads the per-item outcome of a partial update bulk. ES returns exactly one item per action, in the request order, so the i-th response
+     * belongs to the i-th request. A different item count means the response is corrupt and the positions can't be trusted: it is rejected as a
+     * whole.
+     *
+     * @param expectedSize the number of requests sent.
+     */
+    static List<PartialUpdateResponse> readPartialUpdateBulkResponse(JsonNode responseNode, int expectedSize) throws ClientInternalError {
+        JsonNode items = responseNode.get(ElasticsearchKeywords.KEY_ITEMS);
+        if (items == null || !items.isArray()) {
+            throw new ClientInternalError("No items in the partial update bulk response");
+        }
+        if (items.size() != expectedSize) {
+            throw new ClientInternalError(String.format("Partial update bulk response has %s items, %s requests were sent", items.size(), expectedSize));
+        }
+        List<PartialUpdateResponse> responses = new ArrayList<>(items.size());
+        for (JsonNode item : items) {
+            JsonNode update = item.get(ElasticsearchKeywords.KEY_UPDATE);
+            if (update == null) {
+                throw new ClientInternalError("Unexpected item in the partial update bulk response: " + item);
+            }
+            int status = update.path(ElasticsearchKeywords.KEY_STATUS).asInt();
+            JsonNode error = update.get(ElasticsearchKeywords.KEY_ERROR);
+            responses.add(new PartialUpdateResponse(
+                    update.path(ElasticsearchKeywords.KEY_DOC_INDEX).asText(null),
+                    update.path(ElasticsearchKeywords.KEY_DOC_ID).asText(null),
+                    status,
+                    error == null ? update.path(ElasticsearchKeywords.KEY_RESULT).asText(null) : null,
+                    error != null ? error.path("type").asText(null) : null,
+                    error != null ? error.path("reason").asText(null) : null));
+        }
+        return responses;
     }
 
     @Override

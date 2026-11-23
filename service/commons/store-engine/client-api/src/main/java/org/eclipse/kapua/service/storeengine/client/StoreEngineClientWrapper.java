@@ -25,10 +25,13 @@ import org.eclipse.kapua.service.storeengine.client.model.IndexResponse;
 import org.eclipse.kapua.service.storeengine.client.model.InsertRequest;
 import org.eclipse.kapua.service.storeengine.client.model.InsertResponse;
 import org.eclipse.kapua.service.storeengine.client.model.ResultList;
+import org.eclipse.kapua.service.storeengine.client.model.PartialUpdateRequest;
+import org.eclipse.kapua.service.storeengine.client.model.PartialUpdateResponse;
 import org.eclipse.kapua.service.storeengine.client.model.UpdateRequest;
 import org.eclipse.kapua.service.storeengine.client.model.UpdateResponse;
 
 import java.io.Closeable;
+import java.util.List;
 
 /**
  * Elasticsearch client definition.
@@ -152,6 +155,20 @@ public interface StoreEngineClientWrapper<C extends Closeable> {
      * @since 1.0.0
      */
     BulkUpdateResponse upsert(BulkUpdateRequest bulkUpdateRequest) throws ClientException;
+
+    /**
+     * Merges the given fields into each given EXISTING document (see {@link PartialUpdateRequest}), in one bulk request.
+     * Differently from the upsert where all fields of a given document are "touched" (timestamp included)
+     * <p>
+     * Never creates a document: a missing one is reported with status 404. Item failures do not throw, they are reported per item; an exception is
+     * thrown only when the whole request fails (e.g. engine unreachable, request-level 429).
+     *
+     * @param requests The updates (an empty list sends nothing).
+     * @return One {@link PartialUpdateResponse} per request, in the request order.
+     * @throws ClientException if the whole bulk request failed.
+     * @since 2.1.0
+     */
+    List<PartialUpdateResponse> partialUpdate(List<PartialUpdateRequest> requests) throws ClientException;
 
     /**
      * Finds by query.

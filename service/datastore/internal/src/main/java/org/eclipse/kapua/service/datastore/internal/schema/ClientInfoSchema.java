@@ -70,6 +70,19 @@ public class ClientInfoSchema {
     public static final String CLIENT_MESSAGE_ID = "message_id";
 
     /**
+     * Last message timestamp (lower bound of the real one, written by the LastPublishedTracker).
+     *
+     * @since 2.1.0
+     */
+    public static final String CLIENT_LAST_MESSAGE_ON = "last_message_on";
+    /**
+     * Identifier of the message at CLIENT_LAST_MESSAGE_ON (written together with it).
+     *
+     * @since 2.1.0
+     */
+    public static final String CLIENT_LAST_MESSAGE_ID = "last_message_id";
+
+    /**
      * Create and return the Json representation of the client info schema
      *
      * @return
@@ -96,6 +109,12 @@ public class ClientInfoSchema {
 
                 ObjectNode clientMessageId = MappingUtils.newObjectNode(new KeyValueEntry[]{new KeyValueEntry(SchemaKeys.KEY_TYPE, SchemaKeys.TYPE_KEYWORD), new KeyValueEntry(SchemaKeys.KEY_INDEX, SchemaKeys.VALUE_TRUE)});
                 propertiesNode.set(CLIENT_MESSAGE_ID, clientMessageId);
+
+                ObjectNode clientLastMessageOn = MappingUtils.newObjectNode(new KeyValueEntry[]{new KeyValueEntry(SchemaKeys.KEY_TYPE, SchemaKeys.TYPE_DATE), new KeyValueEntry(SchemaKeys.KEY_FORMAT, DatastoreUtils.DATASTORE_DATE_FORMAT)});
+                propertiesNode.set(CLIENT_LAST_MESSAGE_ON, clientLastMessageOn);
+
+                ObjectNode clientLastMessageId = MappingUtils.newObjectNode(new KeyValueEntry[]{new KeyValueEntry(SchemaKeys.KEY_TYPE, SchemaKeys.TYPE_KEYWORD), new KeyValueEntry(SchemaKeys.KEY_INDEX, SchemaKeys.VALUE_TRUE)});
+                propertiesNode.set(CLIENT_LAST_MESSAGE_ID, clientLastMessageId);
             }
             clientNode.set(SchemaKeys.FIELD_NAME_PROPERTIES, propertiesNode);
         }

@@ -140,6 +140,19 @@ public class MetricInfoSchema {
     public static final String METRIC_MTR_MSG_ID_FULL = "metric.message_id";
 
     /**
+     * Last message timestamp (lower bound of the real one, written by the LastPublishedTracker).
+     *
+     * @since 2.1.0
+     */
+    public static final String METRIC_LAST_MESSAGE_ON = "last_message_on";
+    /**
+     * Identifier of the message at METRIC_LAST_MESSAGE_ON (written together with it).
+     *
+     * @since 2.1.0
+     */
+    public static final String METRIC_LAST_MESSAGE_ID = "last_message_id";
+
+    /**
      * Create and return the Json representation of the metric info schema
      *
      * @return
@@ -187,6 +200,12 @@ public class MetricInfoSchema {
             metricMtrNode.set(SchemaKeys.FIELD_NAME_PROPERTIES, metricMtrPropertiesNode);
 
             propertiesNode.set(METRIC_MTR, metricMtrNode);
+
+            ObjectNode metricLastMessageOn = MappingUtils.newObjectNode(new KeyValueEntry[]{new KeyValueEntry(SchemaKeys.KEY_TYPE, SchemaKeys.TYPE_DATE), new KeyValueEntry(SchemaKeys.KEY_FORMAT, DatastoreUtils.DATASTORE_DATE_FORMAT)});
+            propertiesNode.set(METRIC_LAST_MESSAGE_ON, metricLastMessageOn);
+
+            ObjectNode metricLastMessageId = MappingUtils.newObjectNode(new KeyValueEntry[]{new KeyValueEntry(SchemaKeys.KEY_TYPE, SchemaKeys.TYPE_KEYWORD), new KeyValueEntry(SchemaKeys.KEY_INDEX, SchemaKeys.VALUE_TRUE)});
+            propertiesNode.set(METRIC_LAST_MESSAGE_ID, metricLastMessageId);
         }
         metricNode.set(SchemaKeys.FIELD_NAME_PROPERTIES, propertiesNode);
 

@@ -59,7 +59,21 @@ public enum ChannelInfoField implements StorableField {
      *
      * @since 1.0.0
      */
-    MESSAGE_ID(ChannelInfoSchema.CHANNEL_MESSAGE_ID);
+    MESSAGE_ID(ChannelInfoSchema.CHANNEL_MESSAGE_ID),
+
+    /**
+     * Last message timestamp (a lower bound of the real one, written by the LastPublishedTracker; missing on docs it has not written yet)
+     *
+     * @since 2.1.0
+     */
+    LAST_MESSAGE_ON(ChannelInfoSchema.CHANNEL_LAST_MESSAGE_ON),
+
+    /**
+     * Identifier of the message at {@link #LAST_MESSAGE_ON}
+     *
+     * @since 2.1.0
+     */
+    LAST_MESSAGE_ID(ChannelInfoSchema.CHANNEL_LAST_MESSAGE_ID);
 
     private String field;
 
