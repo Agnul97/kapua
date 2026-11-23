@@ -12,6 +12,10 @@
  *******************************************************************************/
 package org.eclipse.kapua.service.datastore.internal;
 
+import org.eclipse.kapua.KapuaException;
+import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedResult;
+import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedUpdate;
+import java.util.List;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.eclipse.kapua.model.id.KapuaId;
 import org.eclipse.kapua.service.datastore.MetricInfoFactory;
@@ -72,5 +76,10 @@ public class MetricInfoRepositoryImpl extends DatastoreRepositoryBase<MetricInfo
     @Override
     public void deleteAllIndexes() {
         super.deleteIndexes(datastoreUtils.getMetricIndexName(KapuaId.ANY));
+    }
+
+    @Override
+    public LastPublishedResult updateLastPublished(List<LastPublishedUpdate> updates, long minAdvanceMillis) throws KapuaException {
+        return doUpdateLastPublished(updates, minAdvanceMillis);
     }
 }

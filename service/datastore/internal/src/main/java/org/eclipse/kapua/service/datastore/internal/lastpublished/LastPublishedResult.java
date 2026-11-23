@@ -48,6 +48,10 @@ public final class LastPublishedResult {
         outcomes.put(key, outcome);
     }
 
+    public void putAll(LastPublishedResult other) {
+        outcomes.putAll(other.outcomes);
+    }
+
     public Outcome get(LastPublishedKey key) {
         // An update the store did not report on was not confirmed: treat it as retryable, so it is never silently dropped.
         return outcomes.getOrDefault(key, Outcome.RETRY);

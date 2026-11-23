@@ -34,8 +34,8 @@ public interface LastPublishedStore {
      *     <li>ignores advances smaller than {@code minAdvanceMillis} ({@link LastPublishedResult.Outcome#DONE}, nothing written);</li>
      *     <li>writes the timestamp and the message id together, or neither.</li>
      * </ul>
-     * TODO: the current {@link EsLastPublishedStore} (plain update, for the stress test) does NOT honour the "never backwards" and
-     *  "minimum advance" points yet: it must switch to its scripted update for correctness.
+     * TODO: the Elasticsearch info repositories ({@code DatastoreRepositoryBase#doUpdateLastPublished}, plain update for the stress test) do NOT
+     *  honour the "never backwards" and "minimum advance" points yet: they must switch to the scripted update for correctness.
      *
      * @param updates          the updates, at most one per key.
      * @param minAdvanceMillis the smallest advance worth writing.

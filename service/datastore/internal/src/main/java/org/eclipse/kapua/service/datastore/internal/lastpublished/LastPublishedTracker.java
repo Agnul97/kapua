@@ -77,7 +77,7 @@ public class LastPublishedTracker implements ServiceModule {
     private final long flushIntervalMillis;
     private final int bulkSize;
     // Last value THIS JVM wrote per key. It is only a filter: losing an entry (eviction, restart)
-    // costs one extra write (a noop once the scripted update is in, see EsLastPublishedStore). Never a correctness issue.
+    // costs one extra write (a noop once the scripted update is in, see DatastoreRepositoryBase#doUpdateLastPublished). Never a correctness issue.
     private final Cache<LastPublishedKey, Long> lastFlushed;
     // Replaced (not cleared) at each flush: volatile so record() always sees the current map.
     private volatile ConcurrentHashMap<LastPublishedKey, Last> pending = new ConcurrentHashMap<>();

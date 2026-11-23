@@ -38,9 +38,9 @@ import org.eclipse.kapua.service.datastore.MetricInfoFactory;
 import org.eclipse.kapua.service.datastore.MetricInfoRegistryService;
 import org.eclipse.kapua.service.datastore.internal.client.TelemetryStoreEngineClientConfiguration;
 import org.eclipse.kapua.service.datastore.internal.converter.ModelContextImpl;
-import org.eclipse.kapua.service.datastore.internal.lastpublished.EsLastPublishedStore;
 import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedStore;
 import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedTracker;
+import org.eclipse.kapua.service.datastore.internal.lastpublished.RepositoryLastPublishedStore;
 import org.eclipse.kapua.service.datastore.internal.setting.TelemetryStoreEngineClientSettings;
 import org.eclipse.kapua.service.storeengine.client.rest.QueryConverterImpl;
 import org.eclipse.kapua.service.datastore.internal.mediator.DatastoreUtils;
@@ -84,7 +84,7 @@ public class DatastoreModule extends AbstractKapuaModule {
         bind(DatastoreUtils.class).in(Singleton.class);
         bind(DatastoreCacheManager.class).in(Singleton.class);
 
-        bind(LastPublishedStore.class).to(EsLastPublishedStore.class).in(Singleton.class);
+        bind(LastPublishedStore.class).to(RepositoryLastPublishedStore.class).in(Singleton.class);
         bind(LastPublishedTracker.class).in(Singleton.class);
     }
 
