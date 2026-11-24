@@ -24,6 +24,10 @@ import org.eclipse.kapua.qa.markers.junit.JUnitTests;
 import org.eclipse.kapua.service.datastore.internal.ChannelInfoFactoryImpl;
 import org.eclipse.kapua.service.datastore.internal.DatastoreCacheManager;
 import org.eclipse.kapua.service.datastore.internal.MetricInfoFactoryImpl;
+import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedKey;
+import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedResult;
+import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedResult.Outcome;
+import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedUpdate;
 import org.eclipse.kapua.service.datastore.internal.mediator.ChannelInfoField;
 import org.eclipse.kapua.service.datastore.internal.mediator.DatastoreUtils;
 import org.eclipse.kapua.service.datastore.internal.mediator.MetricInfoField;
@@ -256,5 +260,75 @@ public class InfoJpaRepositoryTest {
         query.setPredicate(and);
         MetricInfoListResult result = metrics.query(query);
         Assert.assertEquals(1, result.getSize());
+    }
+
+    private static LastPublishedUpdate lastPublished(String id, long onMillis, String messageId) {
+        return new LastPublishedUpdate(new LastPublishedKey(SCOPE, id), onMillis, messageId);
+    }
+
+    @Test
+    public void updateLastPublishedWritesBothFieldsOnAnEmptyValue() throws Exception {
+        channels.upsert("c1", channel(SCOPE, "c1", "client-1", "a/b", 1_000));
+
+        LastPublishedResult result = channels.updateLastPublished(Collections.singletonList(lastPublished("c1", 5_000, "m5")), 1_000);
+
+        Assert.assertEquals(Outcome.DONE, result.get(new LastPublishedKey(SCOPE, "c1")));
+        ChannelInfo found = channels.find(SCOPE, new StorableIdImpl("c1"));
+        Assert.assertEquals(new Date(5_000), found.getLastMessageOn());
+        Assert.assertEquals("m5", found.getLastMessageId().toString());
+    }
+
+    @Test
+    public void updateLastPublishedNeverMovesBackwardsAndHonoursTheMinimumAdvance() throws Exception {
+        channels.upsert("c1", channel(SCOPE, "c1", "client-1", "a/b", 1_000));
+        channels.updateLastPublished(Collections.singletonList(lastPublished("c1", 10_000, "m10")), 1_000);
+
+        // older value: skipped, reported DONE
+        Assert.assertEquals(Outcome.DONE, channels.updateLastPublished(Collections.singletonList(lastPublished("c1", 5_000, "m5")), 1_000)
+                .get(new LastPublishedKey(SCOPE, "c1")));
+        // newer, but by less than the minimum advance: skipped
+        channels.updateLastPublished(Collections.singletonList(lastPublished("c1", 10_500, "m10.5")), 1_000);
+        ChannelInfo found = channels.find(SCOPE, new StorableIdImpl("c1"));
+        Assert.assertEquals(new Date(10_000), found.getLastMessageOn());
+        Assert.assertEquals("m10", found.getLastMessageId().toString());
+
+        // advance exactly equal to the minimum: written
+        channels.updateLastPublished(Collections.singletonList(lastPublished("c1", 11_000, "m11")), 1_000);
+        found = channels.find(SCOPE, new StorableIdImpl("c1"));
+        Assert.assertEquals(new Date(11_000), found.getLastMessageOn());
+        Assert.assertEquals("m11", found.getLastMessageId().toString());
+    }
+
+    @Test
+    public void updateLastPublishedReportsMissingItemsAndNeverCreatesThem() throws Exception {
+        channels.upsert("c1", channel(SCOPE, "c1", "client-1", "a/b", 1_000));
+        channels.updateLastPublished(Collections.singletonList(lastPublished("c1", 10_000, "m10")), 1_000);
+
+        LastPublishedResult result = channels.updateLastPublished(Arrays.asList(
+                lastPublished("c1", 10_100, "skipped"),   // exists, advance below the minimum
+                lastPublished("missing", 20_000, "m20")), 1_000);
+
+        Assert.assertEquals(Outcome.DONE, result.get(new LastPublishedKey(SCOPE, "c1")));
+        Assert.assertEquals(Outcome.MISSING, result.get(new LastPublishedKey(SCOPE, "missing")));
+        Assert.assertNull("an update never creates an item", channels.find(SCOPE, new StorableIdImpl("missing")));
+        Assert.assertEquals(1, channels.count(new ChannelInfoQueryImpl(SCOPE)));
+    }
+
+    @Test
+    public void updateLastPublishedWorksForMetrics() throws Exception {
+        MetricInfoImpl metric = new MetricInfoImpl(SCOPE);
+        metric.setId(new StorableIdImpl("m1"));
+        metric.setClientId("client-1");
+        metric.setChannel("a/b");
+        metric.setName("temperature");
+        metric.setMetricType(Double.class);
+        metric.setFirstMessageId(new StorableIdImpl("msg-1"));
+        metric.setFirstMessageOn(new Date(1_000));
+        metrics.upsert(Collections.singletonList(metric));
+
+        LastPublishedResult result = metrics.updateLastPublished(Collections.singletonList(lastPublished("m1", 7_000, "m7")), 0);
+
+        Assert.assertEquals(Outcome.DONE, result.get(new LastPublishedKey(SCOPE, "m1")));
+        Assert.assertEquals(new Date(7_000), metrics.find(SCOPE, new StorableIdImpl("m1")).getLastMessageOn());
     }
 }

@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.eclipse.kapua.service.datastore.internal.jpa;
 
+import org.eclipse.kapua.KapuaException;
 import org.eclipse.kapua.commons.jpa.KapuaJpaRepositoryConfiguration;
 import org.eclipse.kapua.service.datastore.ChannelInfoFactory;
 import org.eclipse.kapua.service.datastore.internal.DatastoreCacheManager;
@@ -20,7 +21,11 @@ import org.eclipse.kapua.service.datastore.internal.model.ChannelInfoImpl;
 import org.eclipse.kapua.service.datastore.model.ChannelInfo;
 import org.eclipse.kapua.service.datastore.model.ChannelInfoListResult;
 import org.eclipse.kapua.service.datastore.model.query.ChannelInfoQuery;
+import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedResult;
+import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedUpdate;
 import org.eclipse.kapua.storage.TxManager;
+
+import java.util.List;
 
 /**
  * SQL ({@code dt_channel_info}) implementation of {@link ChannelInfoRepository}, bound when {@code datastore.info.storage=SQL}.
@@ -41,5 +46,10 @@ public class ChannelInfoJpaRepository extends StorableJpaRepository<ChannelInfo,
                 // the same cache the Elasticsearch repository receives (see StorableJpaRepository#itemsCache)
                 datastoreCacheManager.getChannelsCache(),
                 ChannelInfo::getId);
+    }
+
+    @Override
+    public LastPublishedResult updateLastPublished(List<LastPublishedUpdate> updates, long minAdvanceMillis) throws KapuaException {
+        return doUpdateLastPublished(updates, minAdvanceMillis);
     }
 }

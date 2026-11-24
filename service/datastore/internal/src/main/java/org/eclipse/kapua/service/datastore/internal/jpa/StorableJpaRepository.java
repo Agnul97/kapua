@@ -22,6 +22,9 @@ import org.eclipse.kapua.commons.model.query.predicate.AndPredicateImpl;
 import org.eclipse.kapua.commons.model.query.predicate.AttributePredicateImpl;
 import org.eclipse.kapua.model.id.KapuaId;
 import org.eclipse.kapua.model.query.predicate.QueryPredicate;
+import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedResult;
+import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedResult.Outcome;
+import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedUpdate;
 import org.eclipse.kapua.service.storable.StorableFactory;
 import org.eclipse.kapua.service.storable.model.Storable;
 import org.eclipse.kapua.service.storable.model.StorableListResult;
@@ -40,6 +43,7 @@ import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaDelete;
 import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.CriteriaUpdate;
 import javax.persistence.criteria.Order;
 import javax.persistence.criteria.ParameterExpression;
 import javax.persistence.criteria.Path;
@@ -47,7 +51,10 @@ import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -273,6 +280,91 @@ public class StorableJpaRepository<T extends Storable, C extends T, L extends St
     @Override
     public void deleteIndexes(String indexExp) {
         itemsCache.invalidateAll();
+    }
+
+    // Last published (LastPublishedStore of the info repositories)
+
+    /**
+     * JPA implementation of {@code LastPublishedStore#updateLastPublished} for the info repositories (the counterpart of the Elasticsearch
+     * {@code DatastoreRepositoryBase#doUpdateLastPublished}): one {@link CriteriaUpdate} per item, generic over the entity class.
+     * <p>
+     * The WHERE clause carries the whole store contract:
+     * <pre>
+     * UPDATE entity SET lastMessageOn = :on, lastMessageId = :messageId
+     *  WHERE id = :id AND (lastMessageOn IS NULL OR lastMessageOn &lt;= :on - minAdvance)
+     * </pre>
+     * so the value never moves backwards, advances smaller than {@code minAdvanceMillis} are skipped, both fields are written together, and an
+     * UPDATE can never create a row.
+     * <p>
+     * An update that changed 0 rows is either a missing item or a skipped advance. The tracker treats those differently (MISSING forgets the key),
+     * so the ids of the 0-row updates are looked up with one extra query: found → DONE (nothing to write), not found → MISSING.
+     * <p>
+     * Errors. The whole chunk runs in ONE transaction (lock timeouts and deadlocks are first retried by the {@link TxManager}). If it fails the
+     * exception is thrown and the tracker requeues the chunk and the rest of the flush, as for any store failure. A single item that always fails
+     * (a poison item) therefore blocks its chunk at every flush: see the design doc, future work.
+     * <p>
+     * Bulk JPA updates skip the persistence context; EclipseLink invalidates the cached entities of the class afterwards, so a later {@code find} reads
+     * the new values.
+     *
+     * @param updates          the updates, at most one per key.
+     * @param minAdvanceMillis the smallest advance worth writing.
+     * @return the outcome per update: DONE or MISSING.
+     * @throws KapuaException if the transaction fails: nothing can be assumed written.
+     * @since 2.1.0
+     */
+    protected LastPublishedResult doUpdateLastPublished(List<LastPublishedUpdate> updates, long minAdvanceMillis) throws KapuaException {
+        LastPublishedResult result = new LastPublishedResult();
+        if (updates.isEmpty()) {
+            return result;
+        }
+        Map<String, Outcome> outcomes = txManager.execute(tx -> applyLastPublished(em(tx), updates, minAdvanceMillis));
+        updates.forEach(u -> result.put(u.getKey(), outcomes.get(u.getKey().getId())));
+        return result;
+    }
+
+    /**
+     * Runs the updates in the given transaction and returns DONE / MISSING per item id.
+     */
+    private Map<String, Outcome> applyLastPublished(EntityManager em, List<LastPublishedUpdate> updates, long minAdvanceMillis) {
+        final String idAttribute = fieldMapping.idAttribute();
+        final String lastMessageOnAttribute = fieldMapping.attributeOf(InfoFieldMapping.LAST_MESSAGE_ON_FIELD);
+        final String lastMessageIdAttribute = fieldMapping.attributeOf(InfoFieldMapping.LAST_MESSAGE_ID_FIELD);
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        List<String> notUpdatedIds = new ArrayList<>();
+        for (LastPublishedUpdate update : updates) {
+            CriteriaUpdate<C> criteriaUpdate = cb.createCriteriaUpdate(concreteClass);
+            Root<C> root = criteriaUpdate.from(concreteClass);
+            Path<Date> lastMessageOn = root.get(lastMessageOnAttribute);
+            criteriaUpdate.set(lastMessageOn, new Date(update.getOnMillis()));
+            criteriaUpdate.set(root.<String>get(lastMessageIdAttribute), update.getMessageId());
+            criteriaUpdate.where(
+                    cb.equal(root.get(idAttribute), update.getKey().getId()),
+                    // never backwards, and only by at least minAdvanceMillis
+                    cb.or(cb.isNull(lastMessageOn), cb.lessThanOrEqualTo(lastMessageOn, new Date(update.getOnMillis() - minAdvanceMillis))));
+            if (em.createQuery(criteriaUpdate).executeUpdate() == 0) {
+                notUpdatedIds.add(update.getKey().getId());
+            }
+        }
+
+        Set<String> existingIds = notUpdatedIds.isEmpty() ? Collections.emptySet() : findExistingIds(em, cb, idAttribute, notUpdatedIds);
+        Map<String, Outcome> outcomes = new HashMap<>();
+        for (LastPublishedUpdate update : updates) {
+            String id = update.getKey().getId();
+            boolean missing = notUpdatedIds.contains(id) && !existingIds.contains(id);
+            outcomes.put(id, missing ? Outcome.MISSING : Outcome.DONE);
+        }
+        return outcomes;
+    }
+
+    /**
+     * Which of the given ids exist (one query; the list is at most one tracker chunk).
+     */
+    private Set<String> findExistingIds(EntityManager em, CriteriaBuilder cb, String idAttribute, List<String> ids) {
+        CriteriaQuery<String> select = cb.createQuery(String.class);
+        Root<C> root = select.from(concreteClass);
+        Path<String> id = root.get(idAttribute);
+        select.select(id).where(id.in(ids));
+        return new HashSet<>(em.createQuery(select).getResultList());
     }
 
     // Helpers
