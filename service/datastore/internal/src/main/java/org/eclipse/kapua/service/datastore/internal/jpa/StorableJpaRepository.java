@@ -85,6 +85,13 @@ public class StorableJpaRepository<T extends Storable, C extends T, L extends St
      */
     private static final String SQL_STATE_CLASS_INTEGRITY_CONSTRAINT = "23";
 
+    /**
+     * Maximum number of items returned by {@link #query(StorableQuery)} when the query has no limit: the contract of
+     * {@link StorableRepository#query(StorableQuery)}. Elasticsearch applies the same value by default (search {@code size}); here it is applied
+     * explicitly.
+     */
+    public static final int DEFAULT_QUERY_LIMIT = 10;
+
     private final Class<C> concreteClass;
     private final StorableFactory<T, L, Q> storableFactory;
     private final TxManager txManager;
@@ -219,15 +226,15 @@ public class StorableJpaRepository<T extends Storable, C extends T, L extends St
             if (query.getOffset() != null) {
                 jpaQuery.setFirstResult(query.getOffset());
             }
+            // no limit: the default of the StorableRepository contract, as Elasticsearch does
+            final int limit = query.getLimit() != null ? query.getLimit() : DEFAULT_QUERY_LIMIT;
             // limit + 1 to know whether more results exist, as KapuaEntityJpaRepository does
-            if (query.getLimit() != null) {
-                jpaQuery.setMaxResults(query.getLimit() + 1);
-            }
+            jpaQuery.setMaxResults(limit + 1);
             List<C> rows = new ArrayList<>(jpaQuery.getResultList());
 
             L result = storableFactory.newListResult();
-            if (query.getLimit() != null && rows.size() > query.getLimit()) {
-                rows.remove(query.getLimit().intValue());
+            if (rows.size() > limit) {
+                rows.remove(limit);
                 result.setLimitExceeded(true);
             }
             result.addItems(rows);

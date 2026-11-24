@@ -22,6 +22,7 @@ import org.eclipse.kapua.commons.setting.system.SystemSettingKey;
 import org.eclipse.kapua.model.id.KapuaId;
 import org.eclipse.kapua.qa.markers.junit.JUnitTests;
 import org.eclipse.kapua.service.datastore.internal.ChannelInfoFactoryImpl;
+import org.eclipse.kapua.service.datastore.internal.ClientInfoFactoryImpl;
 import org.eclipse.kapua.service.datastore.internal.DatastoreCacheManager;
 import org.eclipse.kapua.service.datastore.internal.MetricInfoFactoryImpl;
 import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedKey;
@@ -29,16 +30,23 @@ import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedR
 import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedResult.Outcome;
 import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedUpdate;
 import org.eclipse.kapua.service.datastore.internal.mediator.ChannelInfoField;
+import org.eclipse.kapua.service.datastore.internal.mediator.ClientInfoField;
 import org.eclipse.kapua.service.datastore.internal.mediator.DatastoreUtils;
+import org.eclipse.kapua.service.datastore.internal.mediator.MessageField;
 import org.eclipse.kapua.service.datastore.internal.mediator.MetricInfoField;
 import org.eclipse.kapua.service.datastore.internal.model.ChannelInfoImpl;
+import org.eclipse.kapua.service.datastore.internal.model.ClientInfoImpl;
 import org.eclipse.kapua.service.datastore.internal.model.MetricInfoImpl;
 import org.eclipse.kapua.service.datastore.internal.model.query.ChannelInfoQueryImpl;
+import org.eclipse.kapua.service.datastore.internal.model.query.ClientInfoQueryImpl;
 import org.eclipse.kapua.service.datastore.internal.model.query.MetricInfoQueryImpl;
+import org.eclipse.kapua.service.datastore.internal.model.query.predicate.ChannelMatchPredicateImpl;
 import org.eclipse.kapua.service.datastore.internal.model.query.predicate.DatastorePredicateFactoryImpl;
+import org.eclipse.kapua.service.datastore.internal.schema.MessageSchema;
 import org.eclipse.kapua.service.datastore.internal.setting.DatastoreSettings;
 import org.eclipse.kapua.service.datastore.model.ChannelInfo;
 import org.eclipse.kapua.service.datastore.model.ChannelInfoListResult;
+import org.eclipse.kapua.service.datastore.model.ClientInfoListResult;
 import org.eclipse.kapua.service.datastore.model.MetricInfo;
 import org.eclipse.kapua.service.datastore.model.MetricInfoListResult;
 import org.eclipse.kapua.service.storable.model.id.StorableIdImpl;
@@ -56,6 +64,7 @@ import org.junit.experimental.categories.Category;
 import java.math.BigInteger;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -75,6 +84,7 @@ public class InfoJpaRepositoryTest {
     // keeps the in-memory H2 database alive for the whole class
     private static Connection keepAlive;
     private static ChannelInfoJpaRepository channels;
+    private static ClientInfoJpaRepository clients;
     private static MetricInfoJpaRepository metrics;
     private static DatastoreCacheManager cacheManager;
     private static DatastorePredicateFactoryImpl predicates;
@@ -93,6 +103,7 @@ public class InfoJpaRepositoryTest {
         TxManager txManager = new KapuaJpaTxManagerFactory(3).create("kapua-datastore");
         cacheManager = new DatastoreCacheManager(datastoreSettings);
         channels = new ChannelInfoJpaRepository(new ChannelInfoFactoryImpl(), txManager, new KapuaJpaRepositoryConfiguration(), cacheManager);
+        clients = new ClientInfoJpaRepository(new ClientInfoFactoryImpl(), txManager, new KapuaJpaRepositoryConfiguration(), cacheManager);
         metrics = new MetricInfoJpaRepository(new MetricInfoFactoryImpl(), txManager, new KapuaJpaRepositoryConfiguration(), cacheManager);
         predicates = new DatastorePredicateFactoryImpl(new DatastoreUtils(datastoreSettings));
     }
@@ -107,6 +118,7 @@ public class InfoJpaRepositoryTest {
     @Before
     public void clean() {
         channels.deleteAllIndexes();
+        clients.deleteAllIndexes();
         metrics.deleteAllIndexes();
     }
 
@@ -330,5 +342,155 @@ public class InfoJpaRepositoryTest {
 
         Assert.assertEquals(Outcome.DONE, result.get(new LastPublishedKey(SCOPE, "m1")));
         Assert.assertEquals(new Date(7_000), metrics.find(SCOPE, new StorableIdImpl("m1")).getLastMessageOn());
+    }
+
+    // Queries made by the console data module (GwtDataServiceImpl), run on SQL
+
+    private static ClientInfoImpl client(String id, String clientId, long firstMessageOn) {
+        ClientInfoImpl client = new ClientInfoImpl(SCOPE);
+        client.setId(new StorableIdImpl(id));
+        client.setClientId(clientId);
+        client.setFirstMessageId(new StorableIdImpl("msg-" + id));
+        client.setFirstMessageOn(new Date(firstMessageOn));
+        return client;
+    }
+
+    private static MetricInfoImpl metric(String id, String clientId, String channel, String name) {
+        MetricInfoImpl metric = new MetricInfoImpl(SCOPE);
+        metric.setId(new StorableIdImpl(id));
+        metric.setClientId(clientId);
+        metric.setChannel(channel);
+        metric.setName(name);
+        metric.setMetricType(Double.class);
+        metric.setFirstMessageId(new StorableIdImpl("msg-" + id));
+        metric.setFirstMessageOn(new Date(1_000));
+        return metric;
+    }
+
+    private static List<String> metricNames(MetricInfoListResult result) {
+        return result.getItems().stream().map(MetricInfo::getName).sorted().collect(Collectors.toList());
+    }
+
+    @Test
+    public void consoleTopicsTreeAndTopicsList() {
+        channels.upsert(Arrays.asList(
+                channel(SCOPE, "c1", "client-1", "a/b", 1_000),
+                channel(SCOPE, "c2", "client-1", "a/c", 2_000),
+                channel(SCOPE, "c3", "client-2", "x/y", 3_000),
+                channel(SCOPE, "c4", "client-2", "x/z", 4_000),
+                channel(SCOPE, "c5", "client-3", "w", 5_000)));
+
+        // findTopicsTree: pages without sort until an empty page; every channel exactly once
+        ChannelInfoQueryImpl tree = new ChannelInfoQueryImpl(SCOPE);
+        tree.setLimit(2);
+        List<String> seen = new ArrayList<>();
+        int offset = 0;
+        tree.setOffset(offset);
+        ChannelInfoListResult page = channels.query(tree);
+        while (!page.isEmpty()) {
+            seen.addAll(ids(page));
+            offset += 2;
+            tree.setOffset(offset);
+            page = channels.query(tree);
+        }
+        Assert.assertEquals(5, seen.size());
+        Assert.assertEquals(new HashSet<>(Arrays.asList("c1", "c2", "c3", "c4", "c5")), new HashSet<>(seen));
+
+        // findTopicsList: one page, then the count with limit -1 and offset 0
+        ChannelInfoQueryImpl list = new ChannelInfoQueryImpl(SCOPE);
+        list.setOffset(0);
+        list.setLimit(2);
+        Assert.assertEquals(2, channels.query(list).getSize());
+        list.setLimit(-1);
+        Assert.assertEquals(5, channels.count(list));
+    }
+
+    @Test
+    public void consoleDevicesFilterAndSort() {
+        clients.upsert(Arrays.asList(
+                client("d1", "dev-1", 1_000),
+                client("d2", "dev-2", 3_000),
+                client("d3", "gateway-1", 2_000)));
+
+        // findDevices: ChannelMatchPredicate on client_id (prefix), sorted on timestamp, with the total count
+        ClientInfoQueryImpl devices = new ClientInfoQueryImpl(SCOPE);
+        devices.setPredicate(new ChannelMatchPredicateImpl(ClientInfoField.CLIENT_ID, "dev"));
+        devices.setAskTotalCount(true);
+        devices.setOffset(0);
+        devices.setLimit(10);
+        devices.setSortFields(Collections.singletonList(SortField.descending(ClientInfoField.TIMESTAMP.field())));
+        ClientInfoListResult result = clients.query(devices);
+        Assert.assertEquals(Arrays.asList("dev-2", "dev-1"), result.getItems().stream().map(c -> c.getClientId()).collect(Collectors.toList()));
+        Assert.assertEquals(Long.valueOf(2), result.getTotalCount());
+
+        // first message of a device: Term on client_id, sorted on the message timestamp field, limit 1
+        ClientInfoQueryImpl firstMessage = new ClientInfoQueryImpl(SCOPE);
+        firstMessage.setPredicate(predicates.newTermPredicate(ClientInfoField.CLIENT_ID, "gateway-1"));
+        firstMessage.setLimit(1);
+        firstMessage.setOffset(0);
+        firstMessage.setAskTotalCount(true);
+        firstMessage.setSortFields(Collections.singletonList(SortField.descending(MessageSchema.MESSAGE_TIMESTAMP)));
+        firstMessage.setFetchAttributes(Collections.singletonList(ClientInfoField.TIMESTAMP.field()));
+        Assert.assertEquals(new Date(2_000), clients.query(firstMessage).getFirstItem().getFirstMessageOn());
+    }
+
+    @Test
+    public void consoleHeadersOfTopicDeviceAndAsset() {
+        metrics.upsert(Arrays.asList(
+                metric("m1", "dev-1", "a/b", "temperature"),
+                metric("m2", "dev-1", "a/b/c", "humidity"),
+                metric("m3", "dev-2", "a/x", "pressure"),
+                metric("m4", "dev-2", "z/b", "voltage")));
+
+        // findHeaders(topic) without "/#": Term on the message channel field
+        MetricInfoQueryImpl byTopic = new MetricInfoQueryImpl(SCOPE);
+        byTopic.setLimit(10000);
+        byTopic.setPredicate(predicates.newTermPredicate(MessageField.CHANNEL, "a/b"));
+        Assert.assertEquals(Collections.singletonList("temperature"), metricNames(metrics.query(byTopic)));
+
+        // findHeaders(topic) with "/#", and findHeaders(asset): ChannelMatchPredicate on the default (message channel) field
+        MetricInfoQueryImpl byTopicTree = new MetricInfoQueryImpl(SCOPE);
+        byTopicTree.setLimit(10000);
+        byTopicTree.setPredicate(predicates.newChannelMatchPredicate("a/b/#".replaceFirst("/#$", "/")));
+        Assert.assertEquals(Collections.singletonList("humidity"), metricNames(metrics.query(byTopicTree)));
+
+        // findHeaders(device): Term on the metric client_id
+        MetricInfoQueryImpl byDevice = new MetricInfoQueryImpl(SCOPE);
+        byDevice.setLimit(10000);
+        byDevice.setPredicate(predicates.newTermPredicate(MetricInfoField.CLIENT_ID, "dev-2"));
+        Assert.assertEquals(Arrays.asList("pressure", "voltage"), metricNames(metrics.query(byDevice)));
+    }
+
+    @Test
+    public void channelMatchTreatsLikeWildcardsLiterally() {
+        channels.upsert(Arrays.asList(
+                channel(SCOPE, "c1", "client-1", "a_b/x", 1_000),
+                channel(SCOPE, "c2", "client-1", "aXb/x", 1_000),
+                channel(SCOPE, "c3", "client-1", "100%/x", 1_000),
+                channel(SCOPE, "c4", "client-1", "1000/x", 1_000)));
+
+        ChannelInfoQueryImpl underscore = new ChannelInfoQueryImpl(SCOPE);
+        underscore.setPredicate(predicates.newChannelMatchPredicate("a_b/"));
+        Assert.assertEquals(Collections.singletonList("c1"), ids(channels.query(underscore)));
+
+        ChannelInfoQueryImpl percent = new ChannelInfoQueryImpl(SCOPE);
+        percent.setPredicate(predicates.newChannelMatchPredicate("100%"));
+        Assert.assertEquals(Collections.singletonList("c3"), ids(channels.query(percent)));
+    }
+
+    @Test
+    public void aQueryWithoutLimitReturnsTheDefaultLimit() {
+        List<ChannelInfo> many = new ArrayList<>();
+        for (int i = 0; i < StorableJpaRepository.DEFAULT_QUERY_LIMIT + 2; i++) {
+            many.add(channel(SCOPE, "c" + i, "client-1", "a/" + i, 1_000));
+        }
+        channels.upsert(many);
+
+        ChannelInfoQueryImpl noLimit = new ChannelInfoQueryImpl(SCOPE);
+        Assert.assertNull(noLimit.getLimit());
+        ChannelInfoListResult result = channels.query(noLimit);
+        Assert.assertEquals(StorableJpaRepository.DEFAULT_QUERY_LIMIT, result.getSize());
+        Assert.assertTrue(result.isLimitExceeded());
+        Assert.assertEquals(Long.valueOf(StorableJpaRepository.DEFAULT_QUERY_LIMIT + 2), result.getTotalCount());
     }
 }

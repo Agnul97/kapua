@@ -31,6 +31,16 @@ public interface StorableRepository<
 
     T find(KapuaId scopeId, StorableId id);
 
+    /**
+     * Queries the items.
+     * <p>
+     * Contract: when the query has no limit ({@link StorableQuery#getLimit()} is {@code null}) at most 10 items are returned, the default of
+     * Elasticsearch search requests. The Elasticsearch implementation honours it by not sending any size; other implementations must apply it
+     * explicitly (e.g. {@code StorableJpaRepository.DEFAULT_QUERY_LIMIT}). Callers that need more items set the limit.
+     *
+     * @param query the query.
+     * @return the matching items, at most the query limit (10 when the limit is {@code null}).
+     */
     L query(Q query);
 
     long count(Q query);
