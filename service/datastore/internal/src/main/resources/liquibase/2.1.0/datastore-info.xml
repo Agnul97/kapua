@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Copyright (c) 2026 Eurotech and/or its affiliates and others
+
+    This program and the accompanying materials are made
+    available under the terms of the Eclipse Public License 2.0
+    which is available at https://www.eclipse.org/legal/epl-2.0/
+
+    SPDX-License-Identifier: EPL-2.0
+
+    Contributors:
+        Eurotech - initial API and implementation
+ -->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.0.xsd"
+        logicalFilePath="KapuaDB/changelog-datastore-2.1.0.xml">
+
+    <!--
+        Info docs (channel, client, metric) stored in SQL, used when datastore.info.storage=SQL.
+        The primary key is the derived info id (the same hash used as Elasticsearch doc id).
+        Dates are datetime(3): device timestamps can fall outside the timestamp range.
+    -->
+
+    <changeSet id="changelog-datastore-2.1.0_createTable-dt_channel_info" author="eurotech">
+        <createTable tableName="dt_channel_info">
+            <column name="id" type="varchar(255)">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="scope_id" type="bigint(21) unsigned">
+                <constraints nullable="false" checkConstraint=">= 0"/>
+            </column>
+            <column name="client_id" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="channel" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="first_message_id" type="varchar(255)"/>
+            <column name="first_message_on" type="datetime(3)"/>
+            <column name="last_message_id" type="varchar(255)"/>
+            <column name="last_message_on" type="datetime(3)"/>
+        </createTable>
+
+        <createIndex tableName="dt_channel_info" indexName="idx_dt_channel_info_scope_client_channel">
+            <column name="scope_id"/>
+            <column name="client_id"/>
+            <column name="channel"/>
+        </createIndex>
+        <createIndex tableName="dt_channel_info" indexName="idx_dt_channel_info_scope_last_message_on">
+            <column name="scope_id"/>
+            <column name="last_message_on"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="dt_channel_info"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="changelog-datastore-2.1.0_createTable-dt_client_info" author="eurotech">
+        <createTable tableName="dt_client_info">
+            <column name="id" type="varchar(255)">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="scope_id" type="bigint(21) unsigned">
+                <constraints nullable="false" checkConstraint=">= 0"/>
+            </column>
+            <column name="client_id" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="first_message_id" type="varchar(255)"/>
+            <column name="first_message_on" type="datetime(3)"/>
+            <column name="last_message_id" type="varchar(255)"/>
+            <column name="last_message_on" type="datetime(3)"/>
+        </createTable>
+
+        <createIndex tableName="dt_client_info" indexName="idx_dt_client_info_scope_client">
+            <column name="scope_id"/>
+            <column name="client_id"/>
+        </createIndex>
+        <createIndex tableName="dt_client_info" indexName="idx_dt_client_info_scope_last_message_on">
+            <column name="scope_id"/>
+            <column name="last_message_on"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="dt_client_info"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="changelog-datastore-2.1.0_createTable-dt_metric_info" author="eurotech">
+        <createTable tableName="dt_metric_info">
+            <column name="id" type="varchar(255)">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="scope_id" type="bigint(21) unsigned">
+                <constraints nullable="false" checkConstraint=">= 0"/>
+            </column>
+            <column name="client_id" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="channel" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="metric_name" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="metric_type" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="first_message_id" type="varchar(255)"/>
+            <column name="first_message_on" type="datetime(3)"/>
+            <column name="last_message_id" type="varchar(255)"/>
+            <column name="last_message_on" type="datetime(3)"/>
+        </createTable>
+
+        <createIndex tableName="dt_metric_info" indexName="idx_dt_metric_info_scope_client_channel">
+            <column name="scope_id"/>
+            <column name="client_id"/>
+            <column name="channel"/>
+        </createIndex>
+        <createIndex tableName="dt_metric_info" indexName="idx_dt_metric_info_scope_metric_name">
+            <column name="scope_id"/>
+            <column name="metric_name"/>
+        </createIndex>
+        <createIndex tableName="dt_metric_info" indexName="idx_dt_metric_info_scope_last_message_on">
+            <column name="scope_id"/>
+            <column name="last_message_on"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="dt_metric_info"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

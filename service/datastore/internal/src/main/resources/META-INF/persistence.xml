@@ -23,6 +23,9 @@
         <class>org.eclipse.kapua.commons.configuration.ServiceConfigImpl</class>
         <class>org.eclipse.kapua.service.user.internal.UserImpl</class>
         <class>org.eclipse.kapua.service.account.internal.AccountImpl</class>
+        <class>org.eclipse.kapua.service.datastore.internal.model.ChannelInfoImpl</class>
+        <class>org.eclipse.kapua.service.datastore.internal.model.ClientInfoImpl</class>
+        <class>org.eclipse.kapua.service.datastore.internal.model.MetricInfoImpl</class>
 
         <properties>
             <property name="eclipselink.logging.logger" value="org.eclipse.persistence.logging.slf4j.SLF4JLogger"/>

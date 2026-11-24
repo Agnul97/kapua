@@ -350,7 +350,7 @@ public class DatastoreUtils extends AbstractStoreUtils {
      * @return The metric value type converted to string
      * @since 1.0.0
      */
-    public <T> String convertToClientMetricType(Class<T> aClass) {
+    public static <T> String convertToClientMetricType(Class<T> aClass) {
         if (aClass == String.class) {
             return CLIENT_METRIC_TYPE_STRING;
         }
@@ -385,7 +385,7 @@ public class DatastoreUtils extends AbstractStoreUtils {
      * @return The concrete metric value type
      * @since 1.0.0
      */
-    public Class<?> convertToKapuaType(String clientType) {
+    public static Class<?> convertToKapuaType(String clientType) {
         Class<?> clazz;
         if (CLIENT_METRIC_TYPE_STRING.equals(clientType)) {
             clazz = String.class;
