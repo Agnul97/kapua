@@ -15,6 +15,7 @@ package org.eclipse.kapua.service.datastore.internal.lastpublished;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import org.eclipse.kapua.commons.core.ServiceModule;
+import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedResult.Outcome;
 import org.eclipse.kapua.service.storable.model.id.StorableId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -185,14 +186,19 @@ public class LastPublishedTracker implements ServiceModule {
 
     private int processItemsToRequeue(List<Map.Entry<LastPublishedKey, Last>> chunk, LastPublishedResult result, int retried) {
         for (Map.Entry<LastPublishedKey, Last> e : chunk) {
-            if (result.isRetry(e.getKey())) {
+            Outcome outcome = result.get(e.getKey());
+            if (outcome == Outcome.RETRY) {
                 requeue(e);
                 retried++;
+            } else if (outcome == Outcome.MISSING) {
+                // The doc was deleted (e.g. by the TTL cleanup): drop this value, and forget the key so that, once the doc is
+                // recreated, the next message is written at the next flush instead of up to N later. While the doc is
+                // missing and the item keeps publishing, this costs at most one 404 per item per flush.
+                // TODO: evaluate it better to do "lastFlushed.put(e.getKey(), e.getValue().onMillis);", it depends on the period of recreation of the doc. / how much 404 errors I can tolerate before recreation
+                lastFlushed.invalidate(e.getKey());
             } else {
-                // DONE (updated or noop), MISSING (doc deleted) or FAILED (permanent error): either way nothing more
-                // to send for this value. Marking MISSING as flushed avoids hitting a deleted doc (404) on every message when the next flush will run;
-                // if a facade recreates the doc, its creation seed covers it. FAILED is logged by the store and
-                // retried at most once per N, instead of on every flush.
+                // DONE (updated or noop) or FAILED (permanent error): nothing more to send for this value.
+                // FAILED is logged by the store and retried at most once per N, instead of on every flush.
                 lastFlushed.put(e.getKey(), e.getValue().onMillis);
             }
         }

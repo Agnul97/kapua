@@ -170,21 +170,45 @@ public class LastPublishedTrackerTest {
     }
 
     @Test
-    public void missingAndFailedAreMarkedFlushed() {
+    public void failedIsMarkedFlushed() {
         FakeStore store = new FakeStore();
-        store.outcome = k -> k.equals(A) ? Outcome.MISSING : Outcome.FAILED;
+        store.outcome = k -> Outcome.FAILED;
         LastPublishedTracker t = tracker(store, 1000);
 
-        record(t, A, 1_000, "a");
         record(t, B, 1_000, "b");
         t.flush();
 
         Assert.assertEquals(0, t.pendingSize());
-        Assert.assertEquals(Long.valueOf(1_000), t.lastFlushedOf(A));
         Assert.assertEquals(Long.valueOf(1_000), t.lastFlushedOf(B));
-        // the next messages within N are filtered: a deleted doc is not hit on every message
-        record(t, A, 2_000, "a2");
+        // the next messages within N are filtered: a permanent error is retried at most once per N
+        record(t, B, 2_000, "b2");
         Assert.assertEquals(0, t.pendingSize());
+    }
+
+    @Test
+    public void missingIsDroppedAndForgottenSoARecreatedDocIsWrittenAtTheNextFlush() {
+        FakeStore store = new FakeStore();
+        LastPublishedTracker t = tracker(store, 1000);
+
+        // written once: the key is marked as flushed
+        record(t, A, 0, "a0");
+        t.flush();
+        Assert.assertEquals(Long.valueOf(0), t.lastFlushedOf(A));
+
+        // the doc is deleted: the value N later gets a 404, it is not requeued and the key is forgotten
+        store.outcome = k -> Outcome.MISSING;
+        record(t, A, N, "a1");
+        t.flush();
+        Assert.assertEquals(0, t.pendingSize());
+        Assert.assertNull("a MISSING key is forgotten", t.lastFlushedOf(A));
+
+        // the doc is recreated: a message less than N after the 404 value is still queued and written at the next flush
+        store.outcome = k -> Outcome.DONE;
+        record(t, A, N + 1_000, "a2");
+        Assert.assertEquals(1, t.pendingSize());
+        t.flush();
+        Assert.assertEquals("a2", store.written.get(A).getMessageId());
+        Assert.assertEquals(Long.valueOf(N + 1_000), t.lastFlushedOf(A));
     }
 
     @Test
