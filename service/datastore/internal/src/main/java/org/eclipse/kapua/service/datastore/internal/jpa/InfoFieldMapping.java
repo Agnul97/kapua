@@ -58,13 +58,16 @@ public final class InfoFieldMapping {
             LAST_MESSAGE_ON_FIELD, "lastMessageOn",
             LAST_MESSAGE_ID_FIELD, "lastMessageId"));
 
+    /**
+     * Only the full {@code metric.timestamp} names the first message time: Elasticsearch metric info has no top-level {@code timestamp} field,
+     * so the bare {@code timestamp} (the field of messages, channel and client infos) is not mapped, as in Elasticsearch.
+     */
     public static final InfoFieldMapping METRIC = new InfoFieldMapping(entries(
             MetricInfoSchema.METRIC_SCOPE_ID, SCOPE_ID_ATTRIBUTE,
             MetricInfoSchema.METRIC_CLIENT_ID, "clientId",
             MetricInfoSchema.METRIC_CHANNEL, "channel",
             MetricInfoSchema.METRIC_MTR_NAME_FULL, "name",
             MetricInfoSchema.METRIC_MTR_TYPE_FULL, "metricType",
-            MetricInfoSchema.METRIC_MTR_TIMESTAMP, "firstMessageOn",
             MetricInfoSchema.METRIC_MTR_TIMESTAMP_FULL, "firstMessageOn",
             MetricInfoSchema.METRIC_MTR_MSG_ID_FULL, "firstMessageId",
             LAST_MESSAGE_ON_FIELD, "lastMessageOn",

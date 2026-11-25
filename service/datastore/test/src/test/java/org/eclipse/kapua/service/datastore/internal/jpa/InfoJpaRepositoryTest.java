@@ -493,4 +493,26 @@ public class InfoJpaRepositoryTest {
         Assert.assertTrue(result.isLimitExceeded());
         Assert.assertEquals(Long.valueOf(StorableJpaRepository.DEFAULT_QUERY_LIMIT + 2), result.getTotalCount());
     }
+
+    @Test
+    public void messageOnlyMetricPredicatesAreRefused() {
+        ChannelInfoQueryImpl metricRange = new ChannelInfoQueryImpl(SCOPE);
+        metricRange.setPredicate(predicates.newMetricPredicate("temperature", Double.class, 1.0, 2.0));
+        try {
+            channels.query(metricRange);
+            Assert.fail("MetricPredicate must be refused");
+        } catch (UnsupportedOperationException expected) {
+            // ok
+        }
+
+        // a metric named like an info field ("channel") must not become "channel IS NOT NULL"
+        ChannelInfoQueryImpl metricExists = new ChannelInfoQueryImpl(SCOPE);
+        metricExists.setPredicate(predicates.newMetricExistsPredicate("channel", Double.class));
+        try {
+            channels.count(metricExists);
+            Assert.fail("MetricExistsPredicate must be refused");
+        } catch (UnsupportedOperationException expected) {
+            // ok
+        }
+    }
 }

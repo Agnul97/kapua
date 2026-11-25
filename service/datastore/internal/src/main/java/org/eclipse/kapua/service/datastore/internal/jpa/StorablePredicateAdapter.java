@@ -17,6 +17,8 @@ import org.eclipse.kapua.commons.model.query.predicate.AttributePredicateImpl;
 import org.eclipse.kapua.commons.model.query.predicate.OrPredicateImpl;
 import org.eclipse.kapua.model.query.predicate.AttributePredicate.Operator;
 import org.eclipse.kapua.model.query.predicate.QueryPredicate;
+import org.eclipse.kapua.service.datastore.model.query.predicate.MetricExistsPredicate;
+import org.eclipse.kapua.service.datastore.model.query.predicate.MetricPredicate;
 import org.eclipse.kapua.service.storable.model.id.StorableId;
 import org.eclipse.kapua.service.storable.model.query.predicate.AndPredicate;
 import org.eclipse.kapua.service.storable.model.query.predicate.ExistsPredicate;
@@ -44,7 +46,9 @@ import java.util.stream.Collectors;
  *     <li>{@link MatchPredicate} (also {@code ChannelMatchPredicate}) → STARTS_WITH: in Elasticsearch it is a {@code prefix} query</li>
  *     <li>{@link AndPredicate} / {@link OrPredicate} → And / Or</li>
  * </ul>
- * Any other predicate type is refused with an {@link UnsupportedOperationException}.
+ * {@link MetricPredicate} and {@link MetricExistsPredicate} are refused with an {@link UnsupportedOperationException}: they are used in the codebase
+ * only on messages (the {@code metrics.<name>.<type>} fields of a message), not on info docs, so they won't be supported until a potential
+ * migration of messages to SQL. Any other predicate type is refused the same way.
  *
  * @since 2.1.0
  */
@@ -65,6 +69,13 @@ public class StorablePredicateAdapter {
     public QueryPredicate adapt(StorablePredicate storablePredicate) {
         if (storablePredicate == null) {
             return null;
+        }
+        // Message-only predicates: used in the codebase for messages only, hence not supported until a potential migration of messages to SQL.
+        // Checked first: they extend RangePredicate / ExistsPredicate, and the generic branches would read them wrongly (the field of a
+        // MetricPredicate is "metrics", the name of a MetricExistsPredicate is the metric name, which could even match an info field).
+        if (storablePredicate instanceof MetricPredicate || storablePredicate instanceof MetricExistsPredicate) {
+            throw new UnsupportedOperationException("Storable predicate used for messages only, not supported on SQL info docs: "
+                    + storablePredicate.getClass().getName());
         }
         if (storablePredicate instanceof TermPredicate) {
             TermPredicate term = (TermPredicate) storablePredicate;
