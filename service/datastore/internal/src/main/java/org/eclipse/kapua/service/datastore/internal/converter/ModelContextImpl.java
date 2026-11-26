@@ -285,6 +285,15 @@ public class ModelContextImpl implements ModelContext {
         channelInfo.setName((String) channelInfoMap.get(ChannelInfoSchema.CHANNEL_NAME));
         channelInfo.setFirstMessageId(storableIdFactory.newStorableId((String) channelInfoMap.get(ChannelInfoSchema.CHANNEL_MESSAGE_ID)));
         channelInfo.setFirstMessageOn(KapuaDateUtils.parseDate((String) channelInfoMap.get(ChannelInfoSchema.CHANNEL_TIMESTAMP)));
+        // written only by the last published tracker: absent until its first flush on this doc
+        String lastMessageOn = (String) channelInfoMap.get(ChannelInfoSchema.CHANNEL_LAST_MESSAGE_ON);
+        if (lastMessageOn != null) {
+            channelInfo.setLastMessageOn(KapuaDateUtils.parseDate(lastMessageOn));
+        }
+        String lastMessageId = (String) channelInfoMap.get(ChannelInfoSchema.CHANNEL_LAST_MESSAGE_ID);
+        if (lastMessageId != null) {
+            channelInfo.setLastMessageId(storableIdFactory.newStorableId(lastMessageId));
+        }
 
         return channelInfo;
     }
