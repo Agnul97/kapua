@@ -148,6 +148,12 @@ public class ChannelInfoRegistryServiceImpl implements ChannelInfoRegistryServic
                 for (ChannelInfo channelInfo : result.getItems()) {
                     updateLastPublishedFields(channelInfo);
                 }
+            } else if (result != null) {
+                // the values stored by the last published tracker are an internal approximation: not returned by the API
+                for (ChannelInfo channelInfo : result.getItems()) {
+                    channelInfo.setLastMessageId(null);
+                    channelInfo.setLastMessageOn(null);
+                }
             }
             return result;
         } catch (Exception e) {

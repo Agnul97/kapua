@@ -16,11 +16,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import javax.inject.Provider;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
 import org.eclipse.kapua.commons.configuration.ServiceConfigurationManager;
 import org.eclipse.kapua.commons.core.AbstractKapuaModule;
+import org.eclipse.kapua.commons.jpa.KapuaJpaRepositoryConfiguration;
 import org.eclipse.kapua.commons.core.ServiceModule;
 import org.eclipse.kapua.commons.jpa.KapuaJpaTxManagerFactory;
 import org.eclipse.kapua.commons.model.domains.Domains;
@@ -30,6 +32,7 @@ import org.eclipse.kapua.model.domain.DomainEntry;
 import org.eclipse.kapua.service.account.AccountService;
 import org.eclipse.kapua.service.authorization.AuthorizationService;
 import org.eclipse.kapua.service.authorization.permission.PermissionFactory;
+import org.eclipse.kapua.storage.TxManager;
 import org.eclipse.kapua.service.datastore.ChannelInfoFactory;
 import org.eclipse.kapua.service.datastore.ChannelInfoRegistryService;
 import org.eclipse.kapua.service.datastore.ClientInfoFactory;
@@ -40,6 +43,10 @@ import org.eclipse.kapua.service.datastore.MetricInfoFactory;
 import org.eclipse.kapua.service.datastore.MetricInfoRegistryService;
 import org.eclipse.kapua.service.datastore.internal.client.TelemetryStoreEngineClientConfiguration;
 import org.eclipse.kapua.service.datastore.internal.converter.ModelContextImpl;
+import org.eclipse.kapua.service.datastore.internal.jpa.ChannelInfoJpaRepository;
+import org.eclipse.kapua.service.datastore.internal.jpa.ClientInfoJpaRepository;
+import org.eclipse.kapua.service.datastore.internal.jpa.MetricInfoJpaRepository;
+import org.eclipse.kapua.service.datastore.internal.setting.DatastoreSettingsKey;
 import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedStore;
 import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedTracker;
 import org.eclipse.kapua.service.datastore.internal.setting.TelemetryStoreEngineClientSettings;
@@ -47,7 +54,6 @@ import org.eclipse.kapua.service.storeengine.client.rest.QueryConverterImpl;
 import org.eclipse.kapua.service.datastore.internal.mediator.DatastoreUtils;
 import org.eclipse.kapua.service.datastore.internal.setting.DatastoreElasticsearchClientSettingsKey;
 import org.eclipse.kapua.service.datastore.internal.setting.DatastoreSettings;
-import org.eclipse.kapua.service.datastore.internal.setting.DatastoreSettingsKey;
 import org.eclipse.kapua.service.storeengine.client.StoreEngineClientProvider;
 import org.eclipse.kapua.service.storeengine.client.configuration.StoreEngineClientConfiguration;
 import org.eclipse.kapua.service.storeengine.client.rest.MetricsEsClient;
@@ -61,21 +67,21 @@ import com.google.inject.multibindings.ProvidesIntoSet;
 
 public class DatastoreModule extends AbstractKapuaModule {
 
+    static final String INFO_STORAGE_ES = "ES";
+    static final String INFO_STORAGE_SQL = "SQL";
+
     @Override
     protected void configureModule() {
         bind(DatastoreSettings.class).in(Singleton.class);
         bind(ClientInfoFactory.class).to(ClientInfoFactoryImpl.class).in(Singleton.class);
-        bind(ClientInfoRepository.class).to(ClientInfoDeviceStoreRepository.class).in(Singleton.class);
         bind(ClientInfoRegistryFacade.class).to(ClientInfoRegistryFacadeImpl.class).in(Singleton.class);
         bind(ClientInfoRegistryService.class).to(ClientInfoRegistryServiceImpl.class).in(Singleton.class);
 
         bind(MetricInfoFactory.class).to(MetricInfoFactoryImpl.class).in(Singleton.class);
-        bind(MetricInfoRepository.class).to(MetricInfoRepositoryImpl.class).in(Singleton.class);
         bind(MetricInfoRegistryFacade.class).to(MetricInfoRegistryFacadeImpl.class).in(Singleton.class);
         bind(MetricInfoRegistryService.class).to(MetricInfoRegistryServiceImpl.class).in(Singleton.class);
 
         bind(ChannelInfoFactory.class).to(ChannelInfoFactoryImpl.class).in(Singleton.class);
-        bind(ChannelInfoRepository.class).to(ChannelInfoDeviceStoreRepository.class).in(Singleton.class);
         bind(ChannelInfoRegistryFacade.class).to(ChannelInfoRegistryFacadeImpl.class).in(Singleton.class);
         bind(ChannelInfoRegistryService.class).to(ChannelInfoRegistryServiceImpl.class).in(Singleton.class);
 
@@ -131,6 +137,66 @@ public class DatastoreModule extends AbstractKapuaModule {
     @ProvidesIntoSet
     public Domain dataStoreDomain() {
         return new DomainEntry(Domains.DATASTORE, "org.eclipse.kapua.service.datastore.DatastoreService", false, Actions.read, Actions.delete, Actions.write);
+    }
+
+    /**
+     * Where the info docs (channel, client, metric) are stored, from {@link DatastoreSettingsKey#INFO_STORAGE}: Elasticsearch (default) or SQL.
+     */
+    private static boolean isInfoStorageSql(DatastoreSettings datastoreSettings) {
+        String storage = datastoreSettings.getString(DatastoreSettingsKey.INFO_STORAGE, INFO_STORAGE_ES);
+        if (INFO_STORAGE_SQL.equalsIgnoreCase(storage)) {
+            return true;
+        }
+        if (!INFO_STORAGE_ES.equalsIgnoreCase(storage)) {
+            throw new IllegalArgumentException(String.format("Invalid %s: '%s' (allowed: %s, %s)", DatastoreSettingsKey.INFO_STORAGE.key(), storage, INFO_STORAGE_ES, INFO_STORAGE_SQL));
+        }
+        return false;
+    }
+
+    /**
+     * The info docs are stored in the {@code kapua-datastore} persistence unit when {@code datastore.info.storage=SQL}.
+     */
+    private static TxManager infoTxManager(KapuaJpaTxManagerFactory jpaTxManagerFactory) {
+        return jpaTxManagerFactory.create("kapua-datastore");
+    }
+
+    @Provides
+    @Singleton
+    ChannelInfoRepository channelInfoRepository(DatastoreSettings datastoreSettings,
+                                                Provider<ChannelInfoDeviceStoreRepository> esRepository,
+                                                ChannelInfoFactory channelInfoFactory,
+                                                KapuaJpaTxManagerFactory jpaTxManagerFactory,
+                                                KapuaJpaRepositoryConfiguration jpaRepositoryConfiguration,
+                                                DatastoreCacheManager datastoreCacheManager) {
+        return isInfoStorageSql(datastoreSettings) ?
+                new ChannelInfoJpaRepository(channelInfoFactory, infoTxManager(jpaTxManagerFactory), jpaRepositoryConfiguration, datastoreCacheManager) :
+                esRepository.get();
+    }
+
+    @Provides
+    @Singleton
+    ClientInfoRepository clientInfoRepository(DatastoreSettings datastoreSettings,
+                                              Provider<ClientInfoDeviceStoreRepository> esRepository,
+                                              ClientInfoFactory clientInfoFactory,
+                                              KapuaJpaTxManagerFactory jpaTxManagerFactory,
+                                              KapuaJpaRepositoryConfiguration jpaRepositoryConfiguration,
+                                              DatastoreCacheManager datastoreCacheManager) {
+        return isInfoStorageSql(datastoreSettings) ?
+                new ClientInfoJpaRepository(clientInfoFactory, infoTxManager(jpaTxManagerFactory), jpaRepositoryConfiguration, datastoreCacheManager) :
+                esRepository.get();
+    }
+
+    @Provides
+    @Singleton
+    MetricInfoRepository metricInfoRepository(DatastoreSettings datastoreSettings,
+                                              Provider<MetricInfoRepositoryImpl> esRepository,
+                                              MetricInfoFactory metricInfoFactory,
+                                              KapuaJpaTxManagerFactory jpaTxManagerFactory,
+                                              KapuaJpaRepositoryConfiguration jpaRepositoryConfiguration,
+                                              DatastoreCacheManager datastoreCacheManager) {
+        return isInfoStorageSql(datastoreSettings) ?
+                new MetricInfoJpaRepository(metricInfoFactory, infoTxManager(jpaTxManagerFactory), jpaRepositoryConfiguration, datastoreCacheManager) :
+                esRepository.get();
     }
 
     @Provides

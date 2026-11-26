@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2016, 2022 Eurotech and/or its affiliates and others
+ * Copyright (c) 2016, 2026 Eurotech and/or its affiliates and others
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -13,29 +13,68 @@
  *******************************************************************************/
 package org.eclipse.kapua.service.datastore.internal.model;
 
+import org.eclipse.kapua.commons.model.id.KapuaEid;
 import org.eclipse.kapua.model.id.KapuaId;
 import org.eclipse.kapua.service.datastore.model.ChannelInfo;
 import org.eclipse.kapua.service.storable.model.id.StorableId;
 
+import javax.persistence.Access;
+import javax.persistence.AccessType;
+import javax.persistence.AttributeOverride;
+import javax.persistence.AttributeOverrides;
+import javax.persistence.Column;
+import javax.persistence.Embedded;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
 import java.util.Date;
 
 /**
  * {@link ChannelInfo} implementation.
+ * <p>
+ * Also the JPA entity of the {@code dt_channel_info} table, used when the info docs are stored in SQL ({@code datastore.info.storage=SQL}). The Elasticsearch
+ * repositories use the same class and ignore the JPA annotations. Ids are kept as strings and the scope as {@link KapuaEid}, so the columns are plain types;
+ * getters and setters keep the {@link StorableId} / {@link KapuaId} API.
  *
  * @since 1.0.0
  */
+@Entity(name = "ChannelInfo")
+@Table(name = "dt_channel_info")
+@Access(AccessType.FIELD)
 public class ChannelInfoImpl implements ChannelInfo {
 
     private static final long serialVersionUID = 1L;
 
-    private StorableId id;
-    private KapuaId scopeId;
+    @Id
+    @Column(name = "id", nullable = false, updatable = false)
+    private String id;
+
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "eid", column = @Column(name = "scope_id", nullable = false, updatable = false))
+    })
+    private KapuaEid scopeId;
+
+    @Column(name = "client_id", nullable = false, updatable = false)
     private String clientId;
+
+    @Column(name = "channel", nullable = false, updatable = false)
     private String name;
 
-    private StorableId firstMessageId;
+    @Column(name = "first_message_id")
+    private String firstMessageId;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "first_message_on")
     private Date firstMessageOn;
-    private StorableId lastMessageId;
+
+    @Column(name = "last_message_id")
+    private String lastMessageId;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "last_message_on")
     private Date lastMessageOn;
 
     /**
@@ -49,7 +88,7 @@ public class ChannelInfoImpl implements ChannelInfo {
     /**
      * Constructor.
      *
-     * @param scopeId The scope {@link KapuaId}
+     * @param scopeId The scope {@link KapuaId}.
      * @since 1.0.0
      */
     public ChannelInfoImpl(KapuaId scopeId) {
@@ -58,12 +97,12 @@ public class ChannelInfoImpl implements ChannelInfo {
 
     @Override
     public StorableId getId() {
-        return id;
+        return InfoEntityUtils.toStorableId(id);
     }
 
     @Override
     public void setId(StorableId id) {
-        this.id = id;
+        this.id = InfoEntityUtils.toColumn(id);
     }
 
     @Override
@@ -73,7 +112,7 @@ public class ChannelInfoImpl implements ChannelInfo {
 
     @Override
     public void setScopeId(KapuaId scopeId) {
-        this.scopeId = scopeId;
+        this.scopeId = InfoEntityUtils.toKapuaEid(scopeId);
     }
 
     @Override
@@ -98,12 +137,12 @@ public class ChannelInfoImpl implements ChannelInfo {
 
     @Override
     public StorableId getFirstMessageId() {
-        return this.firstMessageId;
+        return InfoEntityUtils.toStorableId(firstMessageId);
     }
 
     @Override
     public void setFirstMessageId(StorableId firstMessageId) {
-        this.firstMessageId = firstMessageId;
+        this.firstMessageId = InfoEntityUtils.toColumn(firstMessageId);
     }
 
     @Override
@@ -118,12 +157,12 @@ public class ChannelInfoImpl implements ChannelInfo {
 
     @Override
     public StorableId getLastMessageId() {
-        return this.lastMessageId;
+        return InfoEntityUtils.toStorableId(lastMessageId);
     }
 
     @Override
     public void setLastMessageId(StorableId lastMessageId) {
-        this.lastMessageId = lastMessageId;
+        this.lastMessageId = InfoEntityUtils.toColumn(lastMessageId);
     }
 
     @Override
@@ -135,5 +174,4 @@ public class ChannelInfoImpl implements ChannelInfo {
     public void setLastMessageOn(Date lastMessageOn) {
         this.lastMessageOn = lastMessageOn;
     }
-
 }

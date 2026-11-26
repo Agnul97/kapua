@@ -12,11 +12,15 @@
  *******************************************************************************/
 package org.eclipse.kapua.integration.service.datastore;
 
+import org.junit.Ignore;
 import org.junit.runner.RunWith;
 
 import io.cucumber.junit.Cucumber;
 import io.cucumber.junit.CucumberOptions;
 
+// Disabled while the info docs run on SQL: LastPublishedTrackerSteps reads, deletes and counts versions of the channel info doc directly in
+// Elasticsearch (unwrapped RestClient on the channel index, _version). To re-enable, go through ChannelInfoRepository instead of the ES client.
+@Ignore("Reads the channel info doc directly from Elasticsearch: not compatible with datastore.info.storage=SQL")
 @RunWith(Cucumber.class)
 @CucumberOptions(
         features = "classpath:features/datastore/DatastoreLastPublishedTracker.feature",

@@ -12,24 +12,17 @@
  *******************************************************************************/
 package org.eclipse.kapua.service.datastore.steps;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.inject.Singleton;
 import io.cucumber.java.After;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.apache.http.util.EntityUtils;
-import org.eclipse.kapua.commons.util.KapuaDateUtils;
 import org.eclipse.kapua.locator.KapuaLocator;
 import org.eclipse.kapua.message.device.data.KapuaDataChannel;
 import org.eclipse.kapua.message.device.data.KapuaDataMessage;
 import org.eclipse.kapua.message.device.data.KapuaDataMessageFactory;
 import org.eclipse.kapua.message.device.data.KapuaDataPayload;
 import org.eclipse.kapua.model.id.KapuaId;
-import org.eclipse.kapua.plugin.devicestorage.provider.elasticsearch.ElasticsearchStoreEngineClient;
 import org.eclipse.kapua.qa.common.StepData;
 import org.eclipse.kapua.qa.common.TestBase;
 import org.eclipse.kapua.service.account.Account;
@@ -42,16 +35,21 @@ import org.eclipse.kapua.service.datastore.internal.MessageRepository;
 import org.eclipse.kapua.service.datastore.internal.MessageStoreFacadeImpl;
 import org.eclipse.kapua.service.datastore.internal.MetricInfoRegistryFacade;
 import org.eclipse.kapua.service.datastore.internal.MetricInfoRepository;
+import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedResult;
+import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedResult.Outcome;
+import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedStore;
 import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedTracker;
+import org.eclipse.kapua.service.datastore.internal.lastpublished.LastPublishedUpdate;
+import org.eclipse.kapua.service.datastore.internal.mediator.ChannelInfoField;
 import org.eclipse.kapua.service.datastore.internal.mediator.DatastoreUtils;
-import org.eclipse.kapua.service.datastore.internal.schema.ChannelInfoSchema;
+import org.eclipse.kapua.service.datastore.internal.model.query.ChannelInfoQueryImpl;
+import org.eclipse.kapua.service.datastore.model.ChannelInfo;
+import org.eclipse.kapua.service.datastore.model.ChannelInfoListResult;
+import org.eclipse.kapua.service.datastore.model.query.predicate.DatastorePredicateFactory;
 import org.eclipse.kapua.service.device.registry.Device;
 import org.eclipse.kapua.service.storable.model.id.StorableId;
 import org.eclipse.kapua.service.storable.model.id.StorableIdFactory;
-import org.eclipse.kapua.service.storeengine.client.StoreEngineClientProvider;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.client.RestClient;
+import org.eclipse.kapua.service.storable.model.query.predicate.AndPredicate;
 import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,17 +64,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
  * Steps for the channel {@link LastPublishedTracker}: they store messages through a {@link MessageStoreFacadeImpl} wired to a tracker owned by the
- * scenario, then read {@code last_message_on} / {@code last_message_id} straight from the channel info doc in the store engine.
+ * scenario, then read {@code lastMessageOn} / {@code lastMessageId} of the channel info through the {@link ChannelInfoRepository}.
  * <p>
  * The scenario builds its own tracker (enabled, with its own settings) instead of using the injected one: the injected tracker reads its settings once,
  * when the locator is first used in the JVM, so it cannot be enabled reliably from a feature. Everything else is the real code: the facade hook,
  * the channel info repository and the bulk write.
  * <p>
- * The doc is read raw because {@code ChannelInfo.getLastMessageOn()} is filled by a message search ({@code updateLastPublishedFields}), not from the doc.
+ * Only repositories are used (no store engine client), so the steps work with any repository binding (Elasticsearch now, SQL later). The repository is
+ * read directly, not through {@code ChannelInfoRegistryService}: the service replaces the stored values with a message search, or clears them.
+ * The tracker writes are counted by a {@link LastPublishedStore} wrapping the repository, instead of reading a store specific document version.
  * <p>
  * {@link Singleton} like the other step classes: without a scope cucumber-guice builds a new instance for every step, and the tracker created by one
  * step would be gone in the next. The state is reset after each scenario.
@@ -92,7 +93,6 @@ public class LastPublishedTrackerSteps extends TestBase {
      * Allowance for the time a flush, a store call and a refresh take, on top of the theoretical bounds.
      */
     private static final long SLACK_MILLIS = 2_000;
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private LastPublishedTracker tracker;
     private long minAdvanceMillis;
@@ -104,6 +104,8 @@ public class LastPublishedTrackerSteps extends TestBase {
     private final Map<String, KapuaDataMessage> newestByClient = new HashMap<>();
     // per client id, the datastore id of every stored message by its timestamp: a stored (on, id) pair must be one of these
     private final Map<String, TreeMap<Long, String>> timelineByClient = new HashMap<>();
+    // per channel info id, the updates the tracker wrote (DONE): written by the flush thread, read by the steps
+    private final Map<String, Integer> writesByChannelInfoId = new ConcurrentHashMap<>();
 
     @Inject
     public LastPublishedTrackerSteps(StepData stepData) {
@@ -120,6 +122,7 @@ public class LastPublishedTrackerSteps extends TestBase {
         storedIds.clear();
         newestByClient.clear();
         timelineByClient.clear();
+        writesByChannelInfoId.clear();
     }
 
     @Given("A channel last published tracker with min advance {int} seconds and flush interval {int} milliseconds")
@@ -127,7 +130,18 @@ public class LastPublishedTrackerSteps extends TestBase {
         KapuaLocator locator = KapuaLocator.getInstance();
         this.minAdvanceMillis = TimeUnit.SECONDS.toMillis(minAdvanceSeconds);
         this.flushIntervalMillis = flushIntervalMillis;
-        tracker = new LastPublishedTracker("channel-it", locator.getComponent(ChannelInfoRepository.class), true,
+        ChannelInfoRepository channelInfoRepository = locator.getComponent(ChannelInfoRepository.class);
+        // the real repository write, counting the updates it reports as written
+        LastPublishedStore countingStore = (updates, minAdvance) -> {
+            LastPublishedResult result = channelInfoRepository.updateLastPublished(updates, minAdvance);
+            for (LastPublishedUpdate update : updates) {
+                if (result.get(update.getKey()) == Outcome.DONE) {
+                    writesByChannelInfoId.merge(update.getKey().getId(), 1, Integer::sum);
+                }
+            }
+            return result;
+        };
+        tracker = new LastPublishedTracker("channel-it", countingStore, true,
                 this.minAdvanceMillis, flushIntervalMillis, 0, 1000, 10_000);
         trackedFacade = new MessageStoreFacadeImpl(
                 locator.getComponent(ConfigurationProvider.class),
@@ -190,11 +204,11 @@ public class LastPublishedTrackerSteps extends TestBase {
         long deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(seconds);
         long lag;
         do {
-            JsonNode doc = channelDoc(clientId);
-            Assert.assertNotNull("No channel info doc for client " + clientId, doc);
+            ChannelInfo channelInfo = channelInfo(clientId);
+            Assert.assertNotNull("No channel info for client " + clientId, channelInfo);
             lag = Long.MAX_VALUE;
-            if (doc.hasNonNull(ChannelInfoSchema.CHANNEL_LAST_MESSAGE_ON)) {
-                long on = assertConsistentPair(clientId, doc);
+            if (channelInfo.getLastMessageOn() != null) {
+                long on = assertConsistentPair(clientId, channelInfo);
                 lag = newestOn - on;
                 if (lag < minAdvanceMillis) {
                     return;
@@ -206,14 +220,13 @@ public class LastPublishedTrackerSteps extends TestBase {
     }
 
     /**
-     * The doc version counts its writes: 1 for the creation by the facade, +1 for every tracker write (a partial update always changes the doc here,
-     * since every value is new). This checks the rate bound: about one write per N, not one per message.
+     * The tracker writes on the channel, as reported written by the repository. This checks the rate bound: about one write per N, not one per message.
      */
     @Then("The channel info doc of client {string} was written by the tracker between {int} and {int} times")
     public void trackerWrites(String clientId, int min, int max) throws Exception {
-        JsonNode hit = channelHit(clientId);
-        Assert.assertNotNull("No channel info doc for client " + clientId, hit);
-        long writes = hit.path("_version").asLong() - 1;
+        ChannelInfo channelInfo = channelInfo(clientId);
+        Assert.assertNotNull("No channel info for client " + clientId, channelInfo);
+        long writes = trackerWritesOf(channelInfo);
         LOG.info("Channel of client {}: {} tracker writes for {} stored messages", clientId, writes, timelineByClient.get(clientId).size());
         Assert.assertTrue("The tracker wrote " + writes + " times, expected between " + min + " and " + max, writes >= min && writes <= max);
     }
@@ -242,8 +255,8 @@ public class LastPublishedTrackerSteps extends TestBase {
         KapuaDataMessage expected = newest(clientId);
         long deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(seconds);
         while (true) {
-            JsonNode doc = channelDoc(clientId);
-            if (doc != null && matches(doc, expected)) {
+            ChannelInfo channelInfo = channelInfo(clientId);
+            if (channelInfo != null && matches(channelInfo, expected)) {
                 return;
             }
             if (System.currentTimeMillis() > deadline) {
@@ -266,15 +279,15 @@ public class LastPublishedTrackerSteps extends TestBase {
 
     @Then("The channel of client {string} has no last published message")
     public void noLastPublished(String clientId) throws Exception {
-        JsonNode doc = channelDoc(clientId);
-        Assert.assertNotNull("No channel info doc for client " + clientId, doc);
-        Assert.assertFalse("Unexpected " + ChannelInfoSchema.CHANNEL_LAST_MESSAGE_ON + ": " + doc, doc.has(ChannelInfoSchema.CHANNEL_LAST_MESSAGE_ON));
-        Assert.assertFalse("Unexpected " + ChannelInfoSchema.CHANNEL_LAST_MESSAGE_ID + ": " + doc, doc.has(ChannelInfoSchema.CHANNEL_LAST_MESSAGE_ID));
+        ChannelInfo channelInfo = channelInfo(clientId);
+        Assert.assertNotNull("No channel info for client " + clientId, channelInfo);
+        Assert.assertNull("Unexpected lastMessageOn", channelInfo.getLastMessageOn());
+        Assert.assertNull("Unexpected lastMessageId", channelInfo.getLastMessageId());
     }
 
     @Then("The channel info doc of client {string} does not exist")
     public void noChannelDoc(String clientId) throws Exception {
-        Assert.assertNull("The channel info doc was (re)created", channelDoc(clientId));
+        Assert.assertNull("The channel info doc was (re)created", channelInfo(clientId));
     }
 
     /**
@@ -283,16 +296,13 @@ public class LastPublishedTrackerSteps extends TestBase {
      */
     @When("I delete the channel info doc of client {string} from the store engine")
     public void deleteChannelDoc(String clientId) throws Exception {
-        String index = channelIndex();
-        RestClient client = restClient();
-        // delete_by_query only sees searchable docs: refresh first, or a doc indexed a moment ago is silently skipped
-        client.performRequest(new Request("POST", "/" + index + "/_refresh"));
-        Request request = new Request("POST", "/" + index + "/_delete_by_query");
-        request.addParameter("refresh", "true");
-        request.setJsonEntity(OBJECT_MAPPER.writeValueAsString(clientIdQuery(clientId)));
-        Response response = client.performRequest(request);
-        long deleted = OBJECT_MAPPER.readTree(EntityUtils.toString(response.getEntity())).path("deleted").asLong();
-        Assert.assertEquals("The channel info doc of client " + clientId + " was not deleted", 1, deleted);
+        ChannelInfoQueryImpl query = channelQuery(clientId, null);
+        // a delete by query only sees searchable docs: refresh first, or a doc indexed a moment ago is silently skipped
+        refresh();
+        Assert.assertEquals("Channel info docs of client " + clientId + " before the delete", 1, channelInfoRepository().count(query));
+        channelInfoRepository().delete(query);
+        refresh();
+        Assert.assertEquals("The channel info doc of client " + clientId + " was not deleted", 0, channelInfoRepository().count(query));
     }
 
     // ---- several channels of one client: the doc is looked up by client id AND channel
@@ -309,17 +319,17 @@ public class LastPublishedTrackerSteps extends TestBase {
 
     @Then("The channel info doc of channel {string} of client {string} does not exist")
     public void noChannelDoc(String channel, String clientId) throws Exception {
-        Assert.assertNull("Unexpected channel info doc for channel " + channel, channelDoc(clientId, channel));
+        Assert.assertNull("Unexpected channel info doc for channel " + channel, channelInfo(clientId, channel));
     }
 
     /**
-     * Exact count of tracker writes on one channel doc ({@code _version} - 1, the creation by the facade): the rate bound decides it.
+     * Exact count of tracker writes on one channel: the rate bound decides it.
      */
     @Then("The channel {string} of client {string} was written by the tracker {int} time(s)")
     public void channelTrackerWrites(String channel, String clientId, int expected) throws Exception {
-        JsonNode hit = channelHit(clientId, channel);
-        Assert.assertNotNull("No channel info doc for channel " + channel + " of client " + clientId, hit);
-        Assert.assertEquals("Tracker writes on channel " + channel, expected, hit.path("_version").asLong() - 1);
+        ChannelInfo channelInfo = channelInfo(clientId, channel);
+        Assert.assertNotNull("No channel info for channel " + channel + " of client " + clientId, channelInfo);
+        Assert.assertEquals("Tracker writes on channel " + channel, expected, trackerWritesOf(channelInfo));
     }
 
     private void storeTracked(KapuaDataMessage message) throws Exception {
@@ -332,14 +342,14 @@ public class LastPublishedTrackerSteps extends TestBase {
     private void checkWhileRunning(String clientId, long firstOn) throws Exception {
         long newestOn = newest(clientId).getCapturedOn().getTime();
         long running = newestOn - firstOn;
-        JsonNode doc = channelDoc(clientId);
-        Assert.assertNotNull("No channel info doc for client " + clientId, doc);
-        if (!doc.hasNonNull(ChannelInfoSchema.CHANNEL_LAST_MESSAGE_ON)) {
+        ChannelInfo channelInfo = channelInfo(clientId);
+        Assert.assertNotNull("No channel info for client " + clientId, channelInfo);
+        if (channelInfo.getLastMessageOn() == null) {
             Assert.assertTrue("Nothing written " + running + "ms after the first message, the flush interval is " + flushIntervalMillis + "ms",
                     running <= 2 * flushIntervalMillis + SLACK_MILLIS);
             return;
         }
-        long on = assertConsistentPair(clientId, doc);
+        long on = assertConsistentPair(clientId, channelInfo);
         long lag = newestOn - on;
         long maxLag = minAdvanceMillis + 2 * flushIntervalMillis + SLACK_MILLIS;
         Assert.assertTrue("The last published message is " + lag + "ms behind the newest stored message, expected at most " + maxLag + "ms",
@@ -347,14 +357,13 @@ public class LastPublishedTrackerSteps extends TestBase {
     }
 
     /**
-     * @return the stored last_message_on, after checking that it and last_message_id belong to the same stored message.
+     * @return the stored lastMessageOn, after checking that it and lastMessageId belong to the same stored message.
      */
-    private long assertConsistentPair(String clientId, JsonNode doc) throws Exception {
-        long on = KapuaDateUtils.parseDate(doc.get(ChannelInfoSchema.CHANNEL_LAST_MESSAGE_ON).asText()).getTime();
+    private long assertConsistentPair(String clientId, ChannelInfo channelInfo) {
+        long on = channelInfo.getLastMessageOn().getTime();
         String expectedId = timelineByClient.getOrDefault(clientId, new TreeMap<>()).get(on);
-        Assert.assertNotNull("The stored " + ChannelInfoSchema.CHANNEL_LAST_MESSAGE_ON + " is not the time of a stored message: " + doc, expectedId);
-        Assert.assertEquals("The stored " + ChannelInfoSchema.CHANNEL_LAST_MESSAGE_ID + " does not belong to the stored time", expectedId,
-                doc.path(ChannelInfoSchema.CHANNEL_LAST_MESSAGE_ID).asText(null));
+        Assert.assertNotNull("The stored lastMessageOn " + channelInfo.getLastMessageOn() + " is not the time of a stored message", expectedId);
+        Assert.assertEquals("The stored lastMessageId does not belong to the stored time", expectedId, idOf(channelInfo.getLastMessageId()));
         return on;
     }
 
@@ -386,71 +395,71 @@ public class LastPublishedTrackerSteps extends TestBase {
      * @param channel the channel, or {@code null} when the client has a single channel.
      */
     private void assertLastPublished(String clientId, String channel, KapuaDataMessage expected) throws Exception {
-        JsonNode doc = channelDoc(clientId, channel);
-        Assert.assertNotNull("No channel info doc for client " + clientId + (channel != null ? " channel " + channel : ""), doc);
-        Assert.assertTrue("No " + ChannelInfoSchema.CHANNEL_LAST_MESSAGE_ON + " in " + doc, doc.hasNonNull(ChannelInfoSchema.CHANNEL_LAST_MESSAGE_ON));
-        Date lastMessageOn = KapuaDateUtils.parseDate(doc.get(ChannelInfoSchema.CHANNEL_LAST_MESSAGE_ON).asText());
-        Assert.assertEquals("Wrong " + ChannelInfoSchema.CHANNEL_LAST_MESSAGE_ON, expected.getCapturedOn(), lastMessageOn);
-        Assert.assertEquals("Wrong " + ChannelInfoSchema.CHANNEL_LAST_MESSAGE_ID, storedIds.get(expected).toString(),
-                doc.path(ChannelInfoSchema.CHANNEL_LAST_MESSAGE_ID).asText(null));
+        ChannelInfo channelInfo = channelInfo(clientId, channel);
+        Assert.assertNotNull("No channel info for client " + clientId + (channel != null ? " channel " + channel : ""), channelInfo);
+        Assert.assertNotNull("No lastMessageOn in " + channelInfo.getName(), channelInfo.getLastMessageOn());
+        Assert.assertEquals("Wrong lastMessageOn", expected.getCapturedOn(), channelInfo.getLastMessageOn());
+        Assert.assertEquals("Wrong lastMessageId", storedIds.get(expected).toString(), idOf(channelInfo.getLastMessageId()));
     }
 
-    private boolean matches(JsonNode doc, KapuaDataMessage expected) throws Exception {
-        if (!doc.hasNonNull(ChannelInfoSchema.CHANNEL_LAST_MESSAGE_ON)) {
-            return false;
-        }
-        Date lastMessageOn = KapuaDateUtils.parseDate(doc.get(ChannelInfoSchema.CHANNEL_LAST_MESSAGE_ON).asText());
-        return expected.getCapturedOn().equals(lastMessageOn)
-                && storedIds.get(expected).toString().equals(doc.path(ChannelInfoSchema.CHANNEL_LAST_MESSAGE_ID).asText(null));
+    private boolean matches(ChannelInfo channelInfo, KapuaDataMessage expected) {
+        return expected.getCapturedOn().equals(channelInfo.getLastMessageOn())
+                && storedIds.get(expected).toString().equals(idOf(channelInfo.getLastMessageId()));
+    }
+
+    private static String idOf(StorableId id) {
+        return id == null ? null : id.toString();
+    }
+
+    private int trackerWritesOf(ChannelInfo channelInfo) {
+        return writesByChannelInfoId.getOrDefault(channelInfo.getId().toString(), 0);
     }
 
     /**
-     * @return the {@code _source} of the only channel info doc of the client in the current account, {@code null} when there is none.
+     * @return the only channel info of the client in the current account, {@code null} when there is none.
      */
-    private JsonNode channelDoc(String clientId) throws Exception {
-        return channelDoc(clientId, null);
-    }
-
-    private JsonNode channelDoc(String clientId, String channel) throws Exception {
-        JsonNode hit = channelHit(clientId, channel);
-        return hit == null ? null : hit.get("_source");
-    }
-
-    private JsonNode channelHit(String clientId) throws Exception {
-        return channelHit(clientId, null);
+    private ChannelInfo channelInfo(String clientId) throws Exception {
+        return channelInfo(clientId, null);
     }
 
     /**
      * @param channel the channel, or {@code null} to match any channel of the client (which must then have at most one).
-     * @return the search hit (with {@code _version} and {@code _source}) of the only matching channel info doc, {@code null} when there is none.
+     * @return the only matching channel info, read from the repository, {@code null} when there is none.
      */
-    private JsonNode channelHit(String clientId, String channel) throws Exception {
-        String index = channelIndex();
-        RestClient client = restClient();
-        client.performRequest(new Request("POST", "/" + index + "/_refresh"));
-
-        ObjectNode body = channelQuery(clientId, channel);
-        body.put("version", true);
-        Request search = new Request("POST", "/" + index + "/_search");
-        search.setJsonEntity(OBJECT_MAPPER.writeValueAsString(body));
-        Response response = client.performRequest(search);
-        JsonNode hits = OBJECT_MAPPER.readTree(EntityUtils.toString(response.getEntity())).path("hits").path("hits");
-        Assert.assertTrue("More than one channel doc for client " + clientId + (channel != null ? " channel " + channel : "") + ": " + hits, hits.size() <= 1);
-        return hits.size() == 0 ? null : hits.get(0);
+    private ChannelInfo channelInfo(String clientId, String channel) throws Exception {
+        refresh();
+        ChannelInfoQueryImpl query = channelQuery(clientId, channel);
+        query.setLimit(2);
+        ChannelInfoListResult result = channelInfoRepository().query(query);
+        Assert.assertTrue("More than one channel info for client " + clientId + (channel != null ? " channel " + channel : ""), result.getSize() <= 1);
+        return result.getFirstItem();
     }
 
-    private static ObjectNode clientIdQuery(String clientId) {
-        return channelQuery(clientId, null);
-    }
-
-    private static ObjectNode channelQuery(String clientId, String channel) {
-        ObjectNode body = OBJECT_MAPPER.createObjectNode();
-        ArrayNode filter = body.putObject("query").putObject("bool").putArray("filter");
-        filter.addObject().putObject("term").put(ChannelInfoSchema.CHANNEL_CLIENT_ID, clientId);
+    private ChannelInfoQueryImpl channelQuery(String clientId, String channel) {
+        DatastorePredicateFactory predicateFactory = KapuaLocator.getInstance().getFactory(DatastorePredicateFactory.class);
+        AndPredicate and = predicateFactory.newAndPredicate();
+        and.getPredicates().add(predicateFactory.newTermPredicate(ChannelInfoField.CLIENT_ID, clientId));
         if (channel != null) {
-            filter.addObject().putObject("term").put(ChannelInfoSchema.CHANNEL_NAME, channel);
+            and.getPredicates().add(predicateFactory.newTermPredicate(ChannelInfoField.CHANNEL, channel));
         }
-        return body;
+        ChannelInfoQueryImpl query = new ChannelInfoQueryImpl(((Account) stepData.get(LAST_ACCOUNT)).getId());
+        query.setPredicate(and);
+        return query;
+    }
+
+    /**
+     * Makes the latest channel info writes visible to reads (a no-op for stores that are not near real time). The channel indexes are refreshed
+     * through the MESSAGE repository on purpose: every refresh of the channel info repository also clears its index cache, which for the info
+     * repositories is the facade's channel cache, and a cleared channel cache would let the facade recreate a deleted channel doc.
+     */
+    private static void refresh() {
+        KapuaLocator locator = KapuaLocator.getInstance();
+        String channelIndexes = locator.getComponent(DatastoreUtils.class).getChannelIndexName(KapuaId.ANY);
+        locator.getComponent(MessageRepository.class).refreshIndex(channelIndexes);
+    }
+
+    private static ChannelInfoRepository channelInfoRepository() {
+        return KapuaLocator.getInstance().getComponent(ChannelInfoRepository.class);
     }
 
     /**
@@ -458,14 +467,5 @@ public class LastPublishedTrackerSteps extends TestBase {
      */
     private static String channelOf(KapuaDataMessage message) {
         return String.join("/", message.getChannel().getSemanticParts());
-    }
-
-    private String channelIndex() {
-        KapuaId scopeId = ((Account) stepData.get(LAST_ACCOUNT)).getId();
-        return KapuaLocator.getInstance().getComponent(DatastoreUtils.class).getChannelIndexName(scopeId);
-    }
-
-    private static RestClient restClient() throws Exception {
-        return ((ElasticsearchStoreEngineClient) KapuaLocator.getInstance().getComponent(StoreEngineClientProvider.class).getStoreEngineClient().getClient()).unwrap();
     }
 }

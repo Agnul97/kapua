@@ -44,6 +44,15 @@ FROM athz_role_permission
 WHERE NOT (scope_id = 1 AND role_id = 1);
 
 DELETE
+FROM dt_channel_info;
+
+DELETE
+FROM dt_client_info;
+
+DELETE
+FROM dt_metric_info;
+
+DELETE
 FROM dvc_device_connection;
 
 DELETE

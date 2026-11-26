@@ -158,7 +158,14 @@ public enum DatastoreSettingsKey implements SettingKey {
      *
      * @since 2.1.0
      */
-    LAST_PUBLISHED_CHANNEL_LAST_FLUSHED_MAX_SIZE("datastore.last_published.channel.last_flushed.max_size");
+    LAST_PUBLISHED_CHANNEL_LAST_FLUSHED_MAX_SIZE("datastore.last_published.channel.last_flushed.max_size"),
+
+    /**
+     * Where the info docs (channel, client, metric) are stored: {@code ES} (Elasticsearch, default) or {@code SQL} (the {@code dt_*_info} tables).
+     *
+     * @since 2.1.0
+     */
+    INFO_STORAGE("datastore.info.storage");
 
     private String key;
 

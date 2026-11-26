@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2016, 2022 Eurotech and/or its affiliates and others
+ * Copyright (c) 2016, 2026 Eurotech and/or its affiliates and others
  *
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
@@ -13,28 +13,63 @@
  *******************************************************************************/
 package org.eclipse.kapua.service.datastore.internal.model;
 
+import org.eclipse.kapua.commons.model.id.KapuaEid;
 import org.eclipse.kapua.model.id.KapuaId;
 import org.eclipse.kapua.service.datastore.model.ClientInfo;
 import org.eclipse.kapua.service.storable.model.id.StorableId;
 
+import javax.persistence.Access;
+import javax.persistence.AccessType;
+import javax.persistence.AttributeOverride;
+import javax.persistence.AttributeOverrides;
+import javax.persistence.Column;
+import javax.persistence.Embedded;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
 import java.util.Date;
 
 /**
  * {@link ClientInfo} implementation.
+ * <p>
+ * Also the JPA entity of the {@code dt_client_info} table (see {@link ChannelInfoImpl} for the mapping conventions).
  *
  * @since 1.0.0
  */
+@Entity(name = "ClientInfo")
+@Table(name = "dt_client_info")
+@Access(AccessType.FIELD)
 public class ClientInfoImpl implements ClientInfo {
 
     private static final long serialVersionUID = 1L;
 
-    private StorableId id;
-    private KapuaId scopeId;
+    @Id
+    @Column(name = "id", nullable = false, updatable = false)
+    private String id;
+
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "eid", column = @Column(name = "scope_id", nullable = false, updatable = false))
+    })
+    private KapuaEid scopeId;
+
+    @Column(name = "client_id", nullable = false, updatable = false)
     private String clientId;
 
-    private StorableId firstMessageId;
+    @Column(name = "first_message_id")
+    private String firstMessageId;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "first_message_on")
     private Date firstMessageOn;
-    private StorableId lastMessageId;
+
+    @Column(name = "last_message_id")
+    private String lastMessageId;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "last_message_on")
     private Date lastMessageOn;
 
     public ClientInfoImpl() {
@@ -59,17 +94,17 @@ public class ClientInfoImpl implements ClientInfo {
 
     @Override
     public void setScopeId(KapuaId scopeId) {
-        this.scopeId = scopeId;
+        this.scopeId = InfoEntityUtils.toKapuaEid(scopeId);
     }
 
     @Override
     public StorableId getId() {
-        return id;
+        return InfoEntityUtils.toStorableId(id);
     }
 
     @Override
     public void setId(StorableId id) {
-        this.id = id;
+        this.id = InfoEntityUtils.toColumn(id);
     }
 
     @Override
@@ -84,12 +119,12 @@ public class ClientInfoImpl implements ClientInfo {
 
     @Override
     public StorableId getFirstMessageId() {
-        return firstMessageId;
+        return InfoEntityUtils.toStorableId(firstMessageId);
     }
 
     @Override
     public void setFirstMessageId(StorableId firstMessageId) {
-        this.firstMessageId = firstMessageId;
+        this.firstMessageId = InfoEntityUtils.toColumn(firstMessageId);
     }
 
     @Override
@@ -104,12 +139,12 @@ public class ClientInfoImpl implements ClientInfo {
 
     @Override
     public StorableId getLastMessageId() {
-        return lastMessageId;
+        return InfoEntityUtils.toStorableId(lastMessageId);
     }
 
     @Override
     public void setLastMessageId(StorableId lastMessageId) {
-        this.lastMessageId = lastMessageId;
+        this.lastMessageId = InfoEntityUtils.toColumn(lastMessageId);
     }
 
     @Override
